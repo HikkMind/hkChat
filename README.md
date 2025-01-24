@@ -1,1 +1,3 @@
 # hkChat
+
+New golang chat.
