@@ -4,13 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"time"
 	// "sync"
 )
 
 func main() {
-
-	// message_to_server := "Hello, Server!"
 
 	serverConnection, err := net.Dial("tcp", "localhost:8080")
 	if err != nil {
@@ -18,17 +15,19 @@ func main() {
 		return
 	}
 	defer serverConnection.Close()
-	handleSetUsername(serverConnection)
+	// handleSetUsername(serverConnection)
 	// closeChannel := make(chan struct{})
 	globalContext, cancelGlobalContext := context.WithCancel(context.Background())
+	messageChannel := make(chan string)
 	defer cancelGlobalContext()
+	go handleInput(globalContext, cancelGlobalContext, messageChannel)
 	go handleConnectionReceiver(globalContext, serverConnection)
-	go handleConnectionSender(globalContext, serverConnection)
+	go handleConnectionSender(globalContext, messageChannel)
 
-	go func() {
-		time.Sleep(10 * time.Second)
-		cancelGlobalContext()
-	}()
+	// go func() {
+	// 	time.Sleep(10 * time.Second)
+	// 	cancelGlobalContext()
+	// }()
 
 	<-globalContext.Done()
 

@@ -1,39 +1,33 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
+	"net/http"
 )
 
 func main() {
 
-	listenConnection, err := net.Listen("tcp", ":8080")
+	mainServer := &http.Server{
+		Addr: ":8080",
+		ConnContext: func(ctx context.Context, connection net.Conn) context.Context {
+			return context.WithValue(ctx, "connection", connection)
+		},
+	}
+
+	handlerInit()
+
+	http.HandleFunc("/messager", messageHandler)
+	http.HandleFunc("/login", authLogin)
+	http.HandleFunc("/register", authRegister)
+	fmt.Println("server started try")
+	// err := http.ListenAndServe("localhost:8080", nil)
+	err := mainServer.ListenAndServe()
+	fmt.Println(err)
 	if err != nil {
-		fmt.Println("failed to start listening")
+		fmt.Println("failed to start server : ", err)
 		return
 	}
-	defer listenConnection.Close()
-	userConnection := make(map[string]net.Conn)
-
-	// usernames := make(map[net.Conn]string)
-
-	fmt.Printf("start listening by %s\n", listenConnection)
-
-	messageBuffer := make([]byte, 256)
-	for {
-		var username string
-		connection, err := listenConnection.Accept()
-		if err != nil {
-			fmt.Println("failed get connection")
-			break
-		}
-
-		n, _ := connection.Read(messageBuffer)
-		username = string(messageBuffer[:n])
-		userConnection[username] = connection
-
-		// handleSendMessage(connection, []byte("hi from server"))
-		go handleConnectionReader(connection, username)
-	}
-
+	fmt.Println("server started")
 }

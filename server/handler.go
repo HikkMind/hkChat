@@ -1,13 +1,93 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
+
+	"github.com/hikkmind/hkchat/structs"
 )
 
-// func handleConnection(connection net.Conn) {
+var (
+	usersConList map[net.Conn]string
+	usernameList map[string]string
+)
 
-// }
+func handlerInit() {
+	usernameList = make(map[string]string)
+	usersConList = make(map[net.Conn]string)
+}
+
+func messageHandler(responseWriter http.ResponseWriter, request *http.Request) {
+	username := usersConList[request.Context().Value("connection").(net.Conn)]
+	var message structs.Message
+	err := json.NewDecoder(request.Body).Decode(&message)
+	if err != nil {
+		fmt.Println("error json : ", err)
+		return
+	}
+	if len(message.Message) > 0 {
+		fmt.Println(username, " : ", message.Message)
+	}
+}
+
+func authLogin(responseWriter http.ResponseWriter, request *http.Request) {
+	var authUser structs.AuthUser
+	err := json.NewDecoder(request.Body).Decode(&authUser)
+	if err != nil {
+		fmt.Println("failed decode auth")
+		return
+	}
+	username := authUser.Username
+	password := authUser.Password
+
+	if actPass, ok := usernameList[username]; !ok {
+		statusAnswer(responseWriter, "unregistered user", http.StatusConflict)
+		return
+	} else if password != actPass {
+		statusAnswer(responseWriter, "wrong password", http.StatusConflict)
+		return
+	}
+
+	fmt.Println("user " + username + " logged in")
+
+	responseWriter.WriteHeader(http.StatusOK)
+}
+
+func authRegister(responseWriter http.ResponseWriter, request *http.Request) {
+	var authUser structs.AuthUser
+	err := json.NewDecoder(request.Body).Decode(&authUser)
+	if err != nil {
+		fmt.Println("failed decode auth")
+		return
+	}
+	username := authUser.Username
+
+	if _, ok := usernameList[username]; ok {
+		fmt.Printf("user %s already exists\n", username)
+		statusAnswer(responseWriter, "user "+username+" already exists", http.StatusConflict)
+		return
+	}
+
+	conn := request.Context().Value("connection").(net.Conn)
+	if actUsername, ok := usersConList[conn]; ok {
+		mess := structs.MessageStatus{Message: "changed username from " + actUsername + " to " + username}
+		responseWriter.Header().Set("Content-Type", "application/json")
+		responseWriter.WriteHeader(http.StatusCreated)
+		json.NewEncoder(responseWriter).Encode(mess)
+		usersConList[conn] = username
+		delete(usernameList, actUsername)
+		usernameList[username] = authUser.Password
+		return
+	}
+
+	usernameList[username] = authUser.Password
+	usersConList[conn] = username
+	fmt.Println("new user : ", username)
+	responseWriter.WriteHeader(http.StatusCreated)
+
+}
 
 func handleConnectionReader(connection net.Conn, username string) {
 
@@ -23,6 +103,13 @@ func handleConnectionReader(connection net.Conn, username string) {
 		}
 		fmt.Printf("client %s sent message: %s\n", username, string(clientMessage[:n]))
 	}
+}
+
+func statusAnswer(responseWriter http.ResponseWriter, message string, code int) {
+	mess := structs.MessageStatus{Message: message}
+	responseWriter.Header().Set("Content-Type", "application/json")
+	responseWriter.WriteHeader(code)
+	json.NewEncoder(responseWriter).Encode(mess)
 }
 
 // func handleSendMessage(connection net.Conn, message []byte) {
