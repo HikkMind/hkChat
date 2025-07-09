@@ -6,30 +6,77 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/gorilla/websocket"
 	"github.com/hikkmind/hkchat/structs"
 )
 
 var (
-	usersConList map[net.Conn]string
-	usernameList map[string]string
+	usersConList  map[net.Conn]string
+	usernameList  map[string]string
+	websocketList map[*websocket.Conn]struct{}
+	// websocketList      map[string]*websocket.Conn
+	// usersWebsocketList map[*websocket.Conn]string
+
+	upgrader websocket.Upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
 )
 
 func handlerInit() {
 	usernameList = make(map[string]string)
 	usersConList = make(map[net.Conn]string)
+	// websocketList = make(map[string]*websocket.Conn)
+	websocketList = make(map[*websocket.Conn]struct{})
+}
+
+func userHandler(connection *websocket.Conn) {
+	defer connection.Close()
+	defer delete(websocketList, connection)
+	for {
+		messageType, msg, err := connection.ReadMessage()
+		if err != nil || messageType == websocket.CloseMessage {
+			break
+		}
+		// fmt.Println(string(msg))
+		// fmt.Println("got from ", username, " : ", string(message))
+
+		for conn := range websocketList {
+			if connection == conn {
+				continue
+			}
+			// data, _ := json.Marshal(structs.Message{Sender: username, Message: string(msg)})
+			err = conn.WriteMessage(websocket.TextMessage, msg)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+	}
+
 }
 
 func messageHandler(responseWriter http.ResponseWriter, request *http.Request) {
-	username := usersConList[request.Context().Value("connection").(net.Conn)]
-	var message structs.Message
-	err := json.NewDecoder(request.Body).Decode(&message)
+
+	connection, err := upgrader.Upgrade(responseWriter, request, nil)
 	if err != nil {
-		fmt.Println("error json : ", err)
+		fmt.Println("failed upgrade connection : ", err)
 		return
 	}
-	if len(message.Message) > 0 {
-		fmt.Println(username, " : ", message.Message)
-	}
+	websocketList[connection] = struct{}{}
+
+	// username := usersConList[request.Context().Value("connection").(net.Conn)]
+	go userHandler(connection)
+
+	// var message structs.Message
+	// err := json.NewDecoder(request.Body).Decode(&message)
+	// if err != nil {
+	// 	fmt.Println("error json : ", err)
+	// 	return
+	// }
+	// if len(message.Message) > 0 {
+	// 	fmt.Println(username, " : ", message.Message)
+	// }
 }
 
 func authLogin(responseWriter http.ResponseWriter, request *http.Request) {
@@ -53,6 +100,7 @@ func authLogin(responseWriter http.ResponseWriter, request *http.Request) {
 	fmt.Println("user " + username + " logged in")
 
 	responseWriter.WriteHeader(http.StatusOK)
+
 }
 
 func authRegister(responseWriter http.ResponseWriter, request *http.Request) {

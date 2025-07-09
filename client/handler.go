@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gorilla/websocket"
 	"github.com/hikkmind/hkchat/structs"
 )
 
@@ -17,7 +18,7 @@ var (
 	username string
 )
 
-func handleInput(ctx context.Context, cancelCtx context.CancelFunc, messageChannel chan<- string) {
+func handleInput(ctx context.Context, cancelCtx context.CancelFunc, messageChannel chan string) {
 	var userInput string
 	inputScanner := bufio.NewScanner(os.Stdin)
 	for {
@@ -40,6 +41,9 @@ func handleInput(ctx context.Context, cancelCtx context.CancelFunc, messageChann
 			} else if userInput == "/register" {
 				handleLoginRegister("register")
 				break
+			} else if userInput == "/messager" {
+				go handleConnection(ctx, cancelCtx, messageChannel)
+				break
 			}
 
 			messageChannel <- userInput
@@ -59,7 +63,7 @@ func handleLoginRegister(operation string) {
 	inputScanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("username : ")
 	inputScanner.Scan()
-	username := inputScanner.Text()
+	username = inputScanner.Text()
 
 	fmt.Print("password : ")
 	inputScanner.Scan()
@@ -73,51 +77,117 @@ func handleLoginRegister(operation string) {
 	client := &http.Client{}
 	resp, _ := client.Do(req)
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		var mess structs.MessageStatus
 		json.NewDecoder(resp.Body).Decode(&mess)
 		fmt.Println(mess.Message)
+		username = ""
 	}
+
+}
+func handleConnection(ctx context.Context, cancelCtx context.CancelFunc, messageChannel <-chan string) {
+	if username == "" {
+		fmt.Println("no login")
+		return
+	}
+	conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:8080/messager", nil)
+	defer cancelCtx()
+	if err != nil {
+		fmt.Println("Failed join to server : ", err)
+		return
+	}
+	defer conn.Close()
+
+	go handleConnectionReceiver(ctx, conn, cancelCtx)
+	go handleConnectionSender(ctx, conn, messageChannel)
+
+	<-ctx.Done()
+
 }
 
-func handleConnectionReceiver(ctx context.Context, connection net.Conn) {
+func handleConnectionReceiver(ctx context.Context, connection *websocket.Conn, cancelCtx context.CancelFunc) {
 
-	message := make([]byte, 1024)
+	defer cancelCtx()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			_, err := connection.Read(message)
-			if err != net.ErrClosed && err != nil {
-				fmt.Println("Read error : ", err)
-				break
+			messageType, msg, _ := connection.ReadMessage()
+			if messageType == websocket.CloseMessage {
+				return
 			}
-			fmt.Println(" server : ", string(message))
+			var message structs.Message
+			err := json.Unmarshal(msg, &message)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			fmt.Println(message.Sender, " : ", message.Message)
 		}
 	}
 
+	// message := make([]byte, 1024)
+	// for {
+	// 	select {
+	// 	case <-ctx.Done():
+	// 		return
+	// 	default:
+	// 		_, err := connection.Read(message)
+	// 		if err != net.ErrClosed && err != nil {
+	// 			fmt.Println("Read error : ", err)
+	// 			break
+	// 		}
+	// 		fmt.Println(" server : ", string(message))
+	// 	}
+	// }
+
 }
 
-func handleConnectionSender(ctx context.Context, messageChannel <-chan string) {
+func handleConnectionSender(ctx context.Context, connection *websocket.Conn, messageChannel <-chan string) {
+
+	fmt.Println("start sending")
 	var userInput string
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case userInput = <-messageChannel:
-			data := structs.Message{Message: userInput}
-			jsonData, _ := json.Marshal(data)
-			req, _ := http.NewRequest("POST", "http://localhost:8080/messager", bytes.NewBuffer(jsonData))
-			req.Header.Set("Content-Type", "application/json")
-
-			client := &http.Client{}
-			client.Do(req)
-			fmt.Println("send message : ", userInput)
-
-			//connection.Write([]byte(userInput))
+			var message structs.Message
+			message.Sender = username
+			message.Message = userInput
+			data, err := json.Marshal(message)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			err = connection.WriteMessage(websocket.TextMessage, data)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			// fmt.Println("log : sent ", string(data))
 		}
 	}
+
+	// var userInput string
+	// for {
+	// 	select {
+	// 	case <-ctx.Done():
+	// 		return
+	// 	case userInput = <-messageChannel:
+	// 		data := structs.Message{Message: userInput}
+	// 		jsonData, _ := json.Marshal(data)
+	// 		req, _ := http.NewRequest("POST", "http://localhost:8080/messager", bytes.NewBuffer(jsonData))
+	// 		req.Header.Set("Content-Type", "application/json")
+
+	// 		client := &http.Client{}
+	// 		client.Do(req)
+	// 		fmt.Println("send message : ", userInput)
+
+	// 		//connection.Write([]byte(userInput))
+	// 	}
+	// }
 
 	// connection.Write([]byte("Hello server!"))
 

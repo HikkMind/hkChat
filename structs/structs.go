@@ -1,7 +1,7 @@
 package structs
 
 type Message struct {
-	// Sender  string `json:"username"`
+	Sender  string `json:"username"`
 	Message string `json:"message"`
 }
 

@@ -19,10 +19,11 @@ func main() {
 	// closeChannel := make(chan struct{})
 	globalContext, cancelGlobalContext := context.WithCancel(context.Background())
 	messageChannel := make(chan string)
-	defer cancelGlobalContext()
+	// defer cancelGlobalContext()
 	go handleInput(globalContext, cancelGlobalContext, messageChannel)
-	go handleConnectionReceiver(globalContext, serverConnection)
-	go handleConnectionSender(globalContext, messageChannel)
+	// go handleConnection(globalContext, cancelGlobalContext)
+	// go handleConnectionReceiver(globalContext, serverConnection, cancelGlobalContext)
+	// go handleConnectionSender(globalContext, messageChannel)
 
 	// go func() {
 	// 	time.Sleep(10 * time.Second)
