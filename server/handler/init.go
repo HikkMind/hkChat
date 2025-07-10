@@ -3,10 +3,16 @@ package handler
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/websocket"
+	"github.com/hikkmind/hkchat/server/tables"
+	"github.com/lpernett/godotenv"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 var (
@@ -32,6 +38,7 @@ func StartServer() error {
 	}
 
 	handlerInit()
+	databaseInit()
 
 	http.HandleFunc("/messager", MessageHandler)
 	http.HandleFunc("/login", AuthLogin)
@@ -46,4 +53,20 @@ func handlerInit() {
 	usersConList = make(map[net.Conn]string)
 	// websocketList = make(map[string]*websocket.Conn)
 	websocketList = make(map[*websocket.Conn]struct{})
+}
+
+func databaseInit() {
+	err := godotenv.Load(".dbenv")
+	if err != nil {
+		log.Fatal("Error loading .env file : ", err)
+	}
+	dsn := os.Getenv("DB_CONFIG")
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatal("failed to connect:", err)
+	}
+	if err := db.AutoMigrate(&tables.User{}); err != nil {
+		log.Fatal("migration failed:", err)
+	}
+	fmt.Println("connected to database")
 }
