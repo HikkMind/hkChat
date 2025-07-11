@@ -22,6 +22,8 @@ var (
 	// websocketList      map[string]*websocket.Conn
 	// usersWebsocketList map[*websocket.Conn]string
 
+	database *gorm.DB
+
 	upgrader websocket.Upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -68,5 +70,8 @@ func databaseInit() {
 	if err := db.AutoMigrate(&tables.User{}); err != nil {
 		log.Fatal("migration failed:", err)
 	}
+
+	database = db
+
 	fmt.Println("connected to database")
 }
