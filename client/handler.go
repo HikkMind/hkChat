@@ -36,15 +36,19 @@ func handleInput(ctx context.Context, cancelCtx context.CancelFunc, messageChann
 				cancelCtx()
 				return
 			} else if userInput == "/login" {
-				handleLoginRegister("login")
+				code := handleLoginRegister("login")
+				if code == http.StatusOK {
+					go handleConnection(ctx, cancelCtx, messageChannel)
+				}
 				break
 			} else if userInput == "/register" {
 				handleLoginRegister("register")
 				break
-			} else if userInput == "/messager" {
-				go handleConnection(ctx, cancelCtx, messageChannel)
-				break
 			}
+			// } else if userInput == "/messager" {
+			// 	go handleConnection(ctx, cancelCtx, messageChannel)
+			// 	break
+			// }
 
 			messageChannel <- userInput
 
@@ -53,11 +57,11 @@ func handleInput(ctx context.Context, cancelCtx context.CancelFunc, messageChann
 	}
 }
 
-func handleLoginRegister(operation string) {
+func handleLoginRegister(operation string) int {
 
 	if operation != "register" && operation != "login" {
 		fmt.Println("wrong operation : ", operation)
-		return
+		return -1
 	}
 
 	inputScanner := bufio.NewScanner(os.Stdin)
@@ -83,6 +87,8 @@ func handleLoginRegister(operation string) {
 		fmt.Println(mess.Message)
 		username = ""
 	}
+
+	return resp.StatusCode
 
 }
 func handleConnection(ctx context.Context, cancelCtx context.CancelFunc, messageChannel <-chan string) {
