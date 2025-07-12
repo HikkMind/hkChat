@@ -67,7 +67,7 @@ func databaseInit() {
 	if err != nil {
 		log.Fatal("failed to connect:", err)
 	}
-	if err := db.AutoMigrate(&tables.User{}); err != nil {
+	if err := db.AutoMigrate(&tables.User{}, &tables.Message{}); err != nil {
 		log.Fatal("migration failed:", err)
 	}
 

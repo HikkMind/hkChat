@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	"github.com/hikkmind/hkchat/server/tables"
 	"github.com/hikkmind/hkchat/structs"
 )
 
@@ -19,6 +20,17 @@ func userHandler(connection *websocket.Conn) {
 		}
 		// fmt.Println(string(msg))
 		// fmt.Println("got from ", username, " : ", string(message))
+
+		var message structs.Message
+		err = json.Unmarshal(msg, &message)
+		if err != nil {
+			fmt.Println("message wrong json")
+			return
+		}
+
+		var user tables.User
+		database.First(&user, "username = ?", message.Sender)
+		database.Create(&tables.Message{SenderID: user.ID, Message: message.Message})
 
 		for conn := range websocketList {
 			if connection == conn {
