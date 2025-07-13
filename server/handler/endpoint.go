@@ -18,7 +18,7 @@ func MessageHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		fmt.Println("failed upgrade connection : ", err)
 		return
 	}
-	websocketList[connection] = struct{}{}
+	websocketList[connection] = make(chan []byte, startMessagesCount)
 
 	// username := usersConList[request.Context().Value("connection").(net.Conn)]
 	go userHandler(connection)

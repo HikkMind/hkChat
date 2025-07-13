@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/gorilla/websocket"
 	"github.com/hikkmind/hkchat/server/tables"
@@ -18,11 +19,12 @@ import (
 var (
 	usersConList  map[net.Conn]string
 	usernameList  map[string]string
-	websocketList map[*websocket.Conn]struct{}
+	websocketList map[*websocket.Conn]chan []byte
 	// websocketList      map[string]*websocket.Conn
 	// usersWebsocketList map[*websocket.Conn]string
 
-	database *gorm.DB
+	database           *gorm.DB
+	startMessagesCount int
 
 	upgrader websocket.Upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
@@ -54,7 +56,7 @@ func handlerInit() {
 	usernameList = make(map[string]string)
 	usersConList = make(map[net.Conn]string)
 	// websocketList = make(map[string]*websocket.Conn)
-	websocketList = make(map[*websocket.Conn]struct{})
+	websocketList = make(map[*websocket.Conn]chan []byte)
 }
 
 func databaseInit() {
@@ -72,6 +74,7 @@ func databaseInit() {
 	}
 
 	database = db
+	startMessagesCount, _ = strconv.Atoi(os.Getenv("START_MESSAGE_COUNT"))
 
 	fmt.Println("connected to database")
 }
