@@ -9,6 +9,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/hikkmind/hkchat/structs"
@@ -44,6 +46,9 @@ func handleInput(ctx context.Context, cancelCtx context.CancelFunc, messageChann
 			} else if userInput == "/register" {
 				handleLoginRegister("register")
 				break
+			} else if userInput == "/ticker" {
+				// go handleConnection(ctx, cancelCtx, messageChannel)
+				handleTicker(messageChannel)
 			}
 			// } else if userInput == "/messager" {
 			// 	go handleConnection(ctx, cancelCtx, messageChannel)
@@ -129,7 +134,8 @@ func handleConnectionReceiver(ctx context.Context, connection *websocket.Conn, c
 				fmt.Println(err)
 				return
 			}
-			fmt.Println(message.Sender, " : ", message.Message)
+			// fmt.Println(message.Sender, " : ", message.Message, '\t', message.Time)
+			fmt.Println(message.Sender+" : "+message.Message+"\t\t", message.Time)
 		}
 	}
 
@@ -162,6 +168,7 @@ func handleConnectionSender(ctx context.Context, connection *websocket.Conn, mes
 			var message structs.Message
 			message.Sender = username
 			message.Message = userInput
+			message.Time = time.Now()
 			data, err := json.Marshal(message)
 			if err != nil {
 				fmt.Println(err)
@@ -214,5 +221,14 @@ func handleSetUsername(connection net.Conn) {
 		return
 	}
 	defer resp.Body.Close()
+
+}
+
+func handleTicker(messageChannel chan<- string) {
+	ticker := time.NewTicker(time.Millisecond * 10)
+	for i := 0; i < 1000; i++ {
+		<-ticker.C
+		messageChannel <- strconv.Itoa(i)
+	}
 
 }

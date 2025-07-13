@@ -1,8 +1,11 @@
 package structs
 
+import "time"
+
 type Message struct {
-	Sender  string `json:"username"`
-	Message string `json:"message"`
+	Sender  string    `json:"username"`
+	Message string    `json:"message"`
+	Time    time.Time `json:"time"`
 }
 
 type AuthUser struct {
