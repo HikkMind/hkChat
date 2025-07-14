@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -21,15 +19,17 @@ func userHandler(connection *websocket.Conn) {
 	messageChannel := websocketList[connection]
 
 	userContext, userContextCancel := context.WithCancel(context.Background())
+	databaseContext, databaseContextCancel := context.WithCancel(userContext)
 	defer userContextCancel()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	// var wg sync.WaitGroup
+	// wg.Add(1)
 
 	go getLastMessages(userContext, startMessagesCount, databaseChannel)
-	go getUserMessages(userContext, connection, messageChannel, databaseChannel, &wg)
+	go getUserMessages(userContext, connection, messageChannel, databaseChannel, databaseContextCancel)
 
-	wg.Wait()
+	// wg.Wait()
+	<-databaseContext.Done()
 
 	for {
 		messageType, msg, err := connection.ReadMessage()
@@ -65,12 +65,12 @@ func userHandler(connection *websocket.Conn) {
 
 }
 
-func statusAnswer(responseWriter http.ResponseWriter, message string, code int) {
-	mess := structs.MessageStatus{Message: message}
-	responseWriter.Header().Set("Content-Type", "application/json")
-	responseWriter.WriteHeader(code)
-	json.NewEncoder(responseWriter).Encode(mess)
-}
+// func statusAnswer(responseWriter http.ResponseWriter, message string, code int) {
+// 	mess := structs.MessageStatus{Message: message}
+// 	responseWriter.Header().Set("Content-Type", "application/json")
+// 	responseWriter.WriteHeader(code)
+// 	json.NewEncoder(responseWriter).Encode(mess)
+// }
 
 func getLastMessages(userContext context.Context, count int, databaseChannel chan<- []byte) {
 
@@ -103,7 +103,7 @@ func getLastMessages(userContext context.Context, count int, databaseChannel cha
 }
 
 func getUserMessages(userContext context.Context, connection *websocket.Conn,
-	messageChannel <-chan []byte, databaseChannel <-chan []byte, wg *sync.WaitGroup) {
+	messageChannel <-chan []byte, databaseChannel <-chan []byte, databaseContextCancel context.CancelFunc) {
 
 	var msg []byte
 	var ok bool
@@ -133,7 +133,8 @@ database_loop:
 		}
 	}
 
-	wg.Done()
+	// wg.Done()
+	databaseContextCancel()
 
 	for {
 		select {
