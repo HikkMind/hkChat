@@ -24,6 +24,9 @@ func handleInput(ctx context.Context, cancelCtx context.CancelFunc, messageChann
 	var userInput string
 	inputScanner := bufio.NewScanner(os.Stdin)
 	for {
+		if len(username) > 0 {
+			fmt.Print(username, " : ")
+		}
 		select {
 		case <-ctx.Done():
 			return
