@@ -13,12 +13,12 @@ import (
 
 func MessageHandler(responseWriter http.ResponseWriter, request *http.Request) {
 
-	connection, err := upgrader.Upgrade(responseWriter, request, nil)
+	connection, err := mainServer.Upgrader.Upgrade(responseWriter, request, nil)
 	if err != nil {
 		fmt.Println("failed upgrade connection : ", err)
 		return
 	}
-	websocketList[connection] = make(chan []byte, startMessagesCount)
+	mainServer.WebsocketList[connection] = make(chan []byte, mainServer.StartMessagesCount)
 
 	go userHandler(connection)
 }
@@ -31,7 +31,7 @@ func AuthLogin(responseWriter http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	result := database.Where("username = ? AND password = ?", authUser.Username, authUser.Password).First(&tables.User{})
+	result := mainServer.Database.Where("username = ? AND password = ?", authUser.Username, authUser.Password).First(&tables.User{})
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		fmt.Println("login error")
 		responseWriter.WriteHeader(http.StatusConflict)
@@ -55,7 +55,7 @@ func AuthRegister(responseWriter http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	result := database.Create(&tables.User{Username: authUser.Username, Password: authUser.Password})
+	result := mainServer.Database.Create(&tables.User{Username: authUser.Username, Password: authUser.Password})
 	if result.Error != nil {
 		fmt.Println("duplicate error")
 		responseWriter.WriteHeader(http.StatusConflict)

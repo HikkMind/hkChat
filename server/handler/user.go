@@ -13,22 +13,18 @@ import (
 
 func userHandler(connection *websocket.Conn) {
 	defer connection.Close()
-	defer delete(websocketList, connection)
+	defer delete(mainServer.WebsocketList, connection)
 
-	databaseChannel := make(chan []byte, startMessagesCount)
-	messageChannel := websocketList[connection]
+	databaseChannel := make(chan []byte, mainServer.StartMessagesCount)
+	messageChannel := mainServer.WebsocketList[connection]
 
 	userContext, userContextCancel := context.WithCancel(context.Background())
 	databaseContext, databaseContextCancel := context.WithCancel(userContext)
 	defer userContextCancel()
 
-	// var wg sync.WaitGroup
-	// wg.Add(1)
-
-	go getLastMessages(userContext, startMessagesCount, databaseChannel)
+	go getLastMessages(userContext, mainServer.StartMessagesCount, databaseChannel)
 	go getUserMessages(userContext, connection, messageChannel, databaseChannel, databaseContextCancel)
 
-	// wg.Wait()
 	<-databaseContext.Done()
 
 	for {
@@ -36,8 +32,6 @@ func userHandler(connection *websocket.Conn) {
 		if err != nil || messageType == websocket.CloseMessage {
 			break
 		}
-		// fmt.Println(string(msg))
-		// fmt.Println("got from ", username, " : ", string(message))
 
 		var message structs.Message
 		err = json.Unmarshal(msg, &message)
@@ -47,18 +41,13 @@ func userHandler(connection *websocket.Conn) {
 		}
 
 		var user tables.User
-		database.First(&user, "username = ?", message.Sender)
-		database.Create(&tables.Message{SenderID: user.ID, Message: message.Message})
+		mainServer.Database.First(&user, "username = ?", message.Sender)
+		mainServer.Database.Create(&tables.Message{SenderID: user.ID, Message: message.Message})
 
-		for conn, channel := range websocketList {
+		for conn, channel := range mainServer.WebsocketList {
 			if connection == conn {
 				continue
 			}
-			// data, _ := json.Marshal(structs.Message{Sender: username, Message: string(msg)})
-			// err = conn.WriteMessage(websocket.TextMessage, msg)
-			// if err != nil {
-			// 	fmt.Println(err)
-			// }
 			channel <- msg
 		}
 	}
@@ -76,22 +65,15 @@ func getLastMessages(userContext context.Context, count int, databaseChannel cha
 
 	defer close(databaseChannel)
 	var messages []structs.Message
-	// database.Order("created_at DESC").Limit(count).Find(messages)
-	// sort.Slice(messages, func(i, j int) bool {
-	// 	return messages[i].CreatedAt.Before(messages[j].CreatedAt)
-	// })
 
-	database.Table("messages").
+	mainServer.Database.Table("messages").
 		Select("users.username AS sender, messages.message, messages.created_at AS time").
 		Joins("left join users on users.id = messages.sender_id").
 		Order("messages.created_at ASC").
 		Limit(count).
 		Scan(&messages)
 
-	// msg := make([][]byte, count)
-
 	for i := range messages {
-		// msg[i], _ = json.Marshal(messages[i])
 		select {
 		case <-userContext.Done():
 			return
@@ -133,7 +115,6 @@ database_loop:
 		}
 	}
 
-	// wg.Done()
 	databaseContextCancel()
 
 	for {
