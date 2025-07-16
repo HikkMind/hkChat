@@ -15,7 +15,6 @@ FROM alpine:3
 COPY --from=builder /app/server/server /bin/server
 COPY --from=builder /app/server/.dbenv /bin/.dbenv
 EXPOSE 8080
-EXPOSE 5432
 
 WORKDIR /bin
 
