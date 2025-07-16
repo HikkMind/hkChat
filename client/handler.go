@@ -87,7 +87,12 @@ func handleLoginRegister(operation string) int {
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
-	resp, _ := client.Do(req)
+	resp, err := client.Do(req)
+
+	if err != nil {
+		fmt.Println("error to send request : ", err)
+		return -1
+	}
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		var mess structs.MessageStatus
