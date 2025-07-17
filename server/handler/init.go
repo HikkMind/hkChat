@@ -58,9 +58,9 @@ func (server *Server) Start() error {
 	server.databaseInit()
 	server.handlerInit()
 
-	http.HandleFunc("/messager", MessageHandler)
-	http.HandleFunc("/login", AuthLogin)
-	http.HandleFunc("/register", AuthRegister)
+	http.HandleFunc("/api/messager", MessageHandler)
+	http.HandleFunc("/api/login", AuthLogin)
+	http.HandleFunc("/api/register", AuthRegister)
 	fmt.Println("server started")
 	// err := http.ListenAndServe("localhost:8080", nil)
 	return serverHTTP.ListenAndServe()

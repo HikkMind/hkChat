@@ -44,6 +44,7 @@ func AuthLogin(responseWriter http.ResponseWriter, request *http.Request) {
 	fmt.Println("user " + authUser.Username + " logged in")
 
 	responseWriter.WriteHeader(http.StatusOK)
+	responseWriter.Write([]byte(`{"status":"ok"}`))
 
 }
 
