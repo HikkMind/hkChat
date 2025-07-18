@@ -56,6 +56,10 @@ func AuthRegister(responseWriter http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	if len(authUser.Username) == 0 || len(authUser.Password) == 0 {
+		responseWriter.WriteHeader(http.StatusConflict)
+	}
+
 	result := mainServer.Database.Create(&tables.User{Username: authUser.Username, Password: authUser.Password})
 	if result.Error != nil {
 		fmt.Println("duplicate error")

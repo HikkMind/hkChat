@@ -39,15 +39,15 @@ func userHandler(connection *websocket.Conn) {
 			fmt.Println("message wrong json")
 			return
 		}
+		message.Time = time.Now()
 
 		var user tables.User
 		mainServer.Database.First(&user, "username = ?", message.Sender)
-		mainServer.Database.Create(&tables.Message{SenderID: user.ID, Message: message.Message})
+		mainServer.Database.Create(&tables.Message{SenderID: user.ID, Message: message.Message, CreatedAt: message.Time})
 
-		for conn, channel := range mainServer.WebsocketList {
-			if connection == conn {
-				continue
-			}
+		msg, _ = json.Marshal(message)
+
+		for _, channel := range mainServer.WebsocketList {
 			channel <- msg
 		}
 	}

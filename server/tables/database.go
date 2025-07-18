@@ -13,5 +13,5 @@ type Message struct {
 	ID        uint `gorm:"PrimaryKey;autoIncrement"`
 	SenderID  uint
 	Message   string
-	CreatedAt time.Time
+	CreatedAt time.Time `json:"time"`
 }
