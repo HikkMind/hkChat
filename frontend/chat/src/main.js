@@ -7,7 +7,6 @@ const routes = {
     '/chat': 'chat-page'
 };
 
-// Переключение между страницами
 function showPage(pageId, push = true) {
     document.querySelectorAll('.page').forEach(page => {
         page.classList.remove('active');
@@ -29,14 +28,12 @@ window.addEventListener('DOMContentLoaded', () => {
     const pageId = routes[location.pathname];
 
     if (pageId) {
-        showPage(pageId, false); // показываем соответствующую страницу
+        showPage(pageId, false); 
     } else {
-        // путь неизвестен — показываем login и обновляем URL
         showPage('login-page', false);
         history.replaceState({}, '', '/login');
     }
 });
-// Авторизация
 async function login() {
     const username = document.getElementById('login-username').value;
     const password = document.getElementById('login-password').value;
@@ -57,7 +54,6 @@ async function login() {
     }
 }
 
-// Регистрация
 async function register() {
     const username = document.getElementById('reg-username').value;
     const password = document.getElementById('reg-password').value;
@@ -76,16 +72,13 @@ async function register() {
     }
 }
 
-// Выход
 function logout() {
     if (socket) socket.close();
     currentUser = null;
     showPage('login-page');
 }
 
-// Инициализация WebSocket
 function initWebSocket() {
-    // socket = new WebSocket(`ws://localhost:8080/ws?token=${currentUser}`);
     socket = new WebSocket(`ws://localhost:8080/messager`);
     
     socket.onmessage = (event) => {
@@ -100,7 +93,6 @@ function initWebSocket() {
     };
 }
 
-// Отправка сообщения
 function sendMessage(event) {
     if (event instanceof KeyboardEvent && event.key !== 'Enter') {
         return;
@@ -110,14 +102,12 @@ function sendMessage(event) {
     const message = {
         username: currentUser,
         message: document.getElementById('message').value,
-        // time: new Date().toISOString()
     };
     
     socket.send(JSON.stringify(message));
     document.getElementById('message').value = '';
 }
 
-// Отображение сообщения
 function displayMessage(msg) {
     const time = new Date(msg.time).toLocaleTimeString();
     const messageElement = document.createElement('div');

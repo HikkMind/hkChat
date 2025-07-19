@@ -30,23 +30,6 @@ type Server struct {
 	Upgrader websocket.Upgrader
 }
 
-// var (
-// 	usersConList  map[net.Conn]string
-// 	usernameList  map[string]string
-// 	websocketList map[*websocket.Conn]chan []byte
-// 	// websocketList      map[string]*websocket.Conn
-// 	// usersWebsocketList map[*websocket.Conn]string
-
-// 	database           *gorm.DB
-// 	startMessagesCount int
-
-// 	upgrader websocket.Upgrader = websocket.Upgrader{
-// 		CheckOrigin: func(r *http.Request) bool {
-// 			return true
-// 		},
-// 	}
-// )
-
 func (server *Server) Start() error {
 	serverHTTP := &http.Server{
 		Addr: ":8080",
