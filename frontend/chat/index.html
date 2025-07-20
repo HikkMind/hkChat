@@ -1,52 +1,45 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>hkChat</title>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
-        .page { display: none; }
-        .active { display: block; }
-        #chat { height: 300px; border: 1px solid #ccc; overflow-y: scroll; }
+      body {
+        font-family: sans-serif;
+        margin: 0;
+        padding: 20px;
+      }
+
+      .page {
+        display: none;
+      }
+
+      .active {
+        display: block;
+      }
+
+      #chat {
+        height: 300px;
+        border: 1px solid #ccc;
+        overflow-y: scroll;
+        padding: 8px;
+        margin-bottom: 8px;
+      }
+
+      input {
+        margin: 4px;
+        padding: 6px;
+      }
+
+      button {
+        margin: 4px;
+        padding: 6px 12px;
+      }
     </style>
-</head>
-<body>
-    <!-- Страница авторизации -->
-    <div id="login-page" class="page active">
-        <h2>Вход</h2>
-        <input id="login-username" placeholder="Логин">
-        <input id="login-password" type="password" placeholder="Пароль">
-        <button id="login-btn">Войти</button>
-        <button id="show-register-btn">Регистрация</button>
-    </div>
-
-    <!-- Страница регистрации -->
-    <div id="register-page" class="page">
-        <h2>Регистрация</h2>
-        <input id="reg-username" placeholder="Логин">
-        <input id="reg-password" type="password" placeholder="Пароль">
-        <button id="register-btn">Зарегистрироваться</button>
-        <button id="show-login-btn">Назад</button>
-    </div>
-
-    <!-- Страница чата -->
-    <div id="chat-page" class="page">
-        <h2>Чат (<span id="current-user"></span>)</h2>
-        <div id="chat"></div>
-        <input id="message" placeholder="Сообщение">
-        <button id="send-message-btn">Отправить</button>
-        <button id="logout-btn">Выйти</button>
-    </div>
-
-    <script type="module">
-        import { login, register, showPage, sendMessage, logout } from './src/main.js';
-        
-        document.getElementById('login-btn').addEventListener('click', login);
-        document.getElementById('show-register-btn').addEventListener('click', () => showPage('register-page'));
-        document.getElementById('register-btn').addEventListener('click', register);
-        document.getElementById('show-login-btn').addEventListener('click', () => showPage('login-page'));
-        document.getElementById('logout-btn').addEventListener('click', logout);
-        document.getElementById('send-message-btn').addEventListener('click', sendMessage);
-        document.getElementById('message').addEventListener('keydown', sendMessage);
-    </script>
-</body>
+  </head>
+  <body>
+    <script type="module" src="/src/main.jsx"></script>
+    <div id="root"></div>
+  </body>
 </html>
