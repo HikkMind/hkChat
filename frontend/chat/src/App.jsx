@@ -16,7 +16,7 @@ function App() {
 
   useEffect(() => {
     if (page === routes.chat && currentUser) {
-      const socket = new WebSocket(`ws://localhost:8080/messager`);
+      const socket = new WebSocket(`ws://${window.location.hostname}:5173/messager`);
       socketRef.current = socket;
 
       socket.onmessage = (event) => {
