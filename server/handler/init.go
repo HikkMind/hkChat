@@ -44,6 +44,7 @@ func (server *Server) Start() error {
 	http.HandleFunc("/messager", MessageHandler)
 	http.HandleFunc("/login", AuthLogin)
 	http.HandleFunc("/register", AuthRegister)
+	http.HandleFunc("/chatlist", GetChats)
 	fmt.Println("server started")
 	// err := http.ListenAndServe("localhost:8080", nil)
 	return serverHTTP.ListenAndServe()
@@ -72,7 +73,7 @@ func (server *Server) databaseInit() {
 	if err != nil {
 		log.Fatal("failed to connect:", err)
 	}
-	if err := db.AutoMigrate(&tables.User{}, &tables.Message{}); err != nil {
+	if err := db.AutoMigrate(&tables.User{}, &tables.Chat{}, &tables.Message{}); err != nil {
 		log.Fatal("migration failed:", err)
 	}
 

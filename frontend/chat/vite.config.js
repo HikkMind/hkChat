@@ -6,6 +6,7 @@ export default {
       '/api': 'http://server:8080',
       '/login': 'http://server:8080',
       '/register': 'http://server:8080',
+      '/chatlist': 'http://server:8080',
       '/messager': {
         target: 'ws://server:8080',
         ws: true,

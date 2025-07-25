@@ -71,3 +71,19 @@ func AuthRegister(responseWriter http.ResponseWriter, request *http.Request) {
 	responseWriter.WriteHeader(http.StatusCreated)
 
 }
+
+func GetChats(responseWriter http.ResponseWriter, request *http.Request) {
+
+	chats := make([]tables.Chat, 0)
+	mainServer.Database.Table("chats").Find(&chats)
+
+	dataChats, err := json.Marshal(chats)
+	if err != nil {
+		fmt.Println("error get chat list")
+		return
+	}
+	responseWriter.Write(dataChats)
+
+	responseWriter.WriteHeader(http.StatusOK)
+	responseWriter.Header().Set("Content-Type", "application/json")
+}

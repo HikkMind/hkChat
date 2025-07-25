@@ -12,6 +12,18 @@ type User struct {
 type Message struct {
 	ID        uint `gorm:"PrimaryKey;autoIncrement"`
 	SenderID  uint
+	ChatID    uint `gorm:"not null"`
 	Message   string
 	CreatedAt time.Time `json:"time"`
+}
+
+type Chat struct {
+	ID        uint      `gorm:"PrimaryKey;autoIncrement" json:"id"`
+	Name      string    `gorm:"not null" json:"name"`
+	CreatedAt time.Time `json:"-"`
+	Messages  []Message `gorm:"foreignKey:ChatID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
+}
+
+func (Chat) TableName() string {
+	return "chats"
 }

@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 const routes = {
   login: 'login',
   register: 'register',
-  chat: 'chat'
+  chat: 'chat',
+  chatList: 'chatList'
 };
 
 
@@ -11,8 +12,19 @@ function App() {
   const [page, setPage] = useState(routes.login);
   const [currentUser, setCurrentUser] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [chats, setChats] = useState([]);         // <-- сюда
+  const [selectedChat, setSelectedChat] = useState(null);
   const socketRef = useRef(null);
   const messageInputRef = useRef(null);
+
+  useEffect(() => {
+    if (page === routes.chatList) {
+      fetch('/chatlist')
+        .then(res => res.json())
+        .then(data => setChats(data))
+        .catch(err => console.error('Ошибка загрузки чатов:', err));
+    }
+  }, [page]);
 
   useEffect(() => {
     if (page === routes.chat && currentUser) {
@@ -63,7 +75,8 @@ function App() {
     });
     if (response.ok) {
       setCurrentUser(username);
-      setPage(routes.chat);
+      // setPage(routes.chat);
+      setPage('chatList')
     } else {
       alert('Ошибка авторизации');
     }
@@ -99,10 +112,26 @@ function App() {
     return <RegisterPage onRegister={register} onShowLogin={() => setPage(routes.login)} />;
   }
 
+  if (page === routes.chatList) {
+
+    return (
+      <ChatListPage
+        chats={chats}
+        onSelectChat={(chat) => {
+          setSelectedChat(chat);
+          setMessages([]);         // очищаем сообщения
+          setPage(routes.chat);    // переходим на страницу чата
+        }}
+        onLogout={logout}
+      />
+    );
+  }
+
+
   if (page === routes.chat) {
     return (
       <ChatPage
-        currentUser={currentUser}
+        currentChat={selectedChat}
         messages={messages}
         onSendMessage={sendMessage}
         messageInputRef={messageInputRef}
@@ -146,7 +175,33 @@ function RegisterPage({ onRegister, onShowLogin }) {
   );
 }
 
-function ChatPage({ currentUser, messages, onSendMessage, messageInputRef, chatRef, onLogout }) {
+function ChatListPage({ chats, onSelectChat }) {
+  return (
+    <div>
+      <h2>Список чатов</h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {chats.map(chat => (
+          <div
+            key={chat.id}
+            onClick={() => onSelectChat(chat)}
+            style={{
+              padding: '10px',
+              border: '1px solid #ccc',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              backgroundColor: '#f9f9f9'
+            }}
+          >
+            {chat.name}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+function ChatPage({ currentChat, messages, onSendMessage, messageInputRef, chatRef, onLogout }) {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       onSendMessage();
@@ -155,7 +210,7 @@ function ChatPage({ currentUser, messages, onSendMessage, messageInputRef, chatR
 
   return (
     <div>
-      <h2>Чат (<span>{currentUser}</span>)</h2>
+      <h2>Чат (<span>{currentChat?.name}</span>)</h2>
       <div
         id="chat"
         ref={chatRef}
