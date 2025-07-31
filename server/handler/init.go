@@ -24,6 +24,7 @@ type Server struct {
 	UsersConList       map[net.Conn]string
 	UsernameList       map[string]string
 	WebsocketList      map[*websocket.Conn]chan []byte
+	ChatList           map[int][]chan []byte
 	Database           *gorm.DB
 	StartMessagesCount int
 
@@ -41,9 +42,9 @@ func (server *Server) Start() error {
 	server.databaseInit()
 	server.handlerInit()
 
-	http.HandleFunc("/messager", MessageHandler)
-	http.HandleFunc("/login", AuthLogin)
-	http.HandleFunc("/register", AuthRegister)
+	http.HandleFunc("/chat", MessageHandler)
+	// http.HandleFunc("/login", AuthLogin)
+	// http.HandleFunc("/register", AuthRegister)
 	http.HandleFunc("/chatlist", GetChats)
 	fmt.Println("server started")
 	// err := http.ListenAndServe("localhost:8080", nil)
@@ -55,6 +56,13 @@ func (server *Server) handlerInit() {
 	server.UsersConList = make(map[net.Conn]string)
 	// websocketList = make(map[string]*websocket.Conn)
 	server.WebsocketList = make(map[*websocket.Conn]chan []byte)
+	server.ChatList = make(map[int][]chan []byte)
+
+	chatIdList := make([]int, 0)
+	server.Database.Table("chats").Select("id").Find(&chatIdList)
+	for _, id := range chatIdList {
+		server.ChatList[id] = make([]chan []byte, 0)
+	}
 
 	server.Upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {

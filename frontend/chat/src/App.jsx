@@ -28,8 +28,16 @@ function App() {
 
   useEffect(() => {
     if (page === routes.chat && currentUser) {
-      const socket = new WebSocket(`ws://${window.location.hostname}:5173/messager`);
+      const socket = new WebSocket(`ws://${window.location.hostname}:5173/chat`);
       socketRef.current = socket;
+
+      socket.onopen = () => {
+        socket.send(JSON.stringify({
+          type: 'join',
+          id: selectedChat.id,
+          name: selectedChat.name
+        }));
+      };
 
       socket.onmessage = (event) => {
         const msg = JSON.parse(event.data);
@@ -39,7 +47,7 @@ function App() {
       socket.onclose = () => {
         if (currentUser) {
           setTimeout(() => {
-            if (currentUser) setPage(routes.chat);
+            if (currentUser) setPage(routes.chat);  
           }, 1000);
         }
       };
