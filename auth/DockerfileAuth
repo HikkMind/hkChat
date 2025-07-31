@@ -1,0 +1,23 @@
+FROM golang:alpine AS builder
+
+WORKDIR /app
+
+COPY ./go.mod ./go.sum ./
+COPY ./structs ./structs
+COPY ./auth ./auth
+COPY ./server/.dbenv ./auth
+COPY ./server/tables ./server/tables
+RUN go mod download
+
+WORKDIR /app/auth
+
+RUN go build -o auth
+
+FROM alpine:3
+COPY --from=builder /app/auth/auth /bin/auth
+COPY --from=builder /app/auth/.dbenv /bin/.dbenv
+EXPOSE 8081
+
+WORKDIR /bin
+
+ENTRYPOINT ["./auth"]
