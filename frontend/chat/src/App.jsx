@@ -4,7 +4,7 @@ const routes = {
   login: 'login',
   register: 'register',
   chat: 'chat',
-  chatList: 'chatList'
+  chatList: 'chatlist'
 };
 
 
@@ -12,55 +12,79 @@ function App() {
   const [page, setPage] = useState(routes.login);
   const [currentUser, setCurrentUser] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [chats, setChats] = useState([]);         // <-- сюда
+  const [chats, setChats] = useState([]);         
   const [selectedChat, setSelectedChat] = useState(null);
   const socketRef = useRef(null);
   const messageInputRef = useRef(null);
 
   useEffect(() => {
-    if (page === routes.chatList) {
-      fetch('/chatlist')
-        .then(res => res.json())
-        .then(data => setChats(data))
-        .catch(err => console.error('Ошибка загрузки чатов:', err));
-    }
-  }, [page]);
-
-  useEffect(() => {
-    if (page === routes.chat && currentUser) {
-      const socket = new WebSocket(`ws://${window.location.hostname}:5173/chat`);
+    if (!socketRef.current && page === routes.chatList) {
+      const socket = new WebSocket(`ws://${window.location.hostname}:5173/chatlist`);
       socketRef.current = socket;
 
       socket.onopen = () => {
-        socket.send(JSON.stringify({
-          type: 'join',
-          id: selectedChat.id,
-          name: selectedChat.name
-        }));
-      };
-
-      socket.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        setMessages(prev => [...prev, msg]);
-      };
+        if (currentUser) {
+          socket.send(JSON.stringify({
+            intent: "get_chats",
+          }));
+        }
+      }
 
       socket.onclose = () => {
         if (currentUser) {
           setTimeout(() => {
-            if (currentUser) setPage(routes.chat);  
+            if (currentUser) setPage(routes.chat);
           }, 1000);
         }
       };
 
-      return () => socket.close();
+      socket.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.)
+      };
     }
   }, [page, currentUser]);
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (page === routes.chat && currentUser && socket) {
+      const joinMessage = JSON.stringify({
+        intent: 'join_chat',
+        chatId: selectedChat.id,
+        name: selectedChat.name,
+        userId: currentUser.id,
+      });
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(joinMessage);
+      } 
+      // else {
+      //   socket.onopen = () => socket.send(joinMessage)
+      // }
+
+      // socket.onmessage = (event) => {
+      //   const msg = JSON.parse(event.data);
+      //   setMessages(prev => [...prev, msg]);
+      // };
+    }
+
+  }, [page, currentUser, selectedChat]);
+ 
+  // Закрываем сокет один раз — при размонтировании (выход из приложения)
+  useEffect(() => {
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+    };
+  }, []);
+
 
   const sendMessage = () => {
     if (!socketRef.current || !currentUser) return;
 
     const message = {
-      username: currentUser,
+      intent: 'send_message',
+      username: currentUser.username,
       message: messageInputRef.current.value
     };
 
@@ -75,20 +99,46 @@ function App() {
     }
   }, [messages]);
 
+  // const login = async (username, password) => {
+  //   const response = await fetch('/login', {
+  //     method: 'POST',
+  //     headers: { 'Content-Type': 'application/json' },
+  //     body: JSON.stringify({ username, password })
+  //   });  
   const login = async (username, password) => {
-    const response = await fetch('/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    if (response.ok) {
-      setCurrentUser(username);
-      // setPage(routes.chat);
-      setPage('chatList')
-    } else {
-      alert('Ошибка авторизации');
+    try {
+      const response = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        if (data.status === 'ok' && data.userId) {
+          setCurrentUser({ username: username, id: data.userId });
+          setPage(routes.chatList);
+        } else {
+          alert('Неверный ответ от сервера');
+        }
+      } else {
+        alert('Ошибка авторизации');
+      }
+    } catch (error) {
+      console.error('Ошибка сети:', error);
+      alert('Сервер недоступен');
     }
   };
+  //   if (response.ok) {
+  //     setCurrentUser({ name: username, id: data.userId });
+  //     // setCurrentUser(username);
+  //     // setPage(routes.chat);
+  //     setPage('chatList')
+  //   } else {
+  //     alert('Ошибка авторизации');
+  //   }
+  // };
 
   const register = async (username, password) => {
     const response = await fetch('/register', {
