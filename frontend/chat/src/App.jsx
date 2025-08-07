@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import LoginPage from './pages/loginPage';
+import RegisterPage from './pages/registerPage';
+import ChatListPage from './pages/chatlistPage';
+import ChatPage from './pages/chatPage';
+import useWebSocket from './hooks/websocket';
+import useScrollToBottom from './hooks/scrollbottom';
+import routes from `./constant/routes`
 
-const routes = {
-  login: 'login',
-  register: 'register',
-  chat: 'chat',
-  chatList: 'chatlist'
-};
 
 
 function App() {
@@ -14,97 +15,37 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [chats, setChats] = useState([]);         
   const [selectedChat, setSelectedChat] = useState(null);
-  const socketRef = useRef(null);
+  // const socketRef = useRef(null);
   const messageInputRef = useRef(null);
+  const chatRef = useScrollToBottom([messages]);
 
-  useEffect(() => {
-    if (!socketRef.current && page === routes.chatList) {
-      const socket = new WebSocket(`ws://${window.location.hostname}:5173/chatlist`);
-      socketRef.current = socket;
+  const {
+    sendMessage,
+    socketRef
+  } = useWebSocket({
+    page,
+    currentUser,
+    selectedChat,
+    onChatsReceived: setChats,
+    onMessageReceived: (msg) => {
+      setMessages(prev => [...prev, msg]);
+    },
+    routes
+  });
 
-      socket.onopen = () => {
-        if (currentUser) {
-          socket.send(JSON.stringify({
-            intent: "get_chats",
-          }));
-        }
-      }
+  // const sendMessage = () => {
+  //   if (!socketRef.current || !currentUser) return;
 
-      socket.onclose = () => {
-        if (currentUser) {
-          setTimeout(() => {
-            if (currentUser) setPage(routes.chat);
-          }, 1000);
-        }
-      };
+  //   const message = {
+  //     intent: 'send_message',
+  //     username: currentUser.username,
+  //     message: messageInputRef.current.value
+  //   };
 
-      socket.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        if (msg.)
-      };
-    }
-  }, [page, currentUser]);
+  //   socketRef.current.send(JSON.stringify(message));
+  //   messageInputRef.current.value = '';
+  // };
 
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (page === routes.chat && currentUser && socket) {
-      const joinMessage = JSON.stringify({
-        intent: 'join_chat',
-        chatId: selectedChat.id,
-        name: selectedChat.name,
-        userId: currentUser.id,
-      });
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(joinMessage);
-      } 
-      // else {
-      //   socket.onopen = () => socket.send(joinMessage)
-      // }
-
-      // socket.onmessage = (event) => {
-      //   const msg = JSON.parse(event.data);
-      //   setMessages(prev => [...prev, msg]);
-      // };
-    }
-
-  }, [page, currentUser, selectedChat]);
- 
-  // Закрываем сокет один раз — при размонтировании (выход из приложения)
-  useEffect(() => {
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.close();
-      }
-    };
-  }, []);
-
-
-  const sendMessage = () => {
-    if (!socketRef.current || !currentUser) return;
-
-    const message = {
-      intent: 'send_message',
-      username: currentUser.username,
-      message: messageInputRef.current.value
-    };
-
-    socketRef.current.send(JSON.stringify(message));
-    messageInputRef.current.value = '';
-  };
-
-  const chatRef = useRef(null);
-  useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  // const login = async (username, password) => {
-  //   const response = await fetch('/login', {
-  //     method: 'POST',
-  //     headers: { 'Content-Type': 'application/json' },
-  //     body: JSON.stringify({ username, password })
-  //   });  
   const login = async (username, password) => {
     try {
       const response = await fetch('/login', {
@@ -116,8 +57,8 @@ function App() {
       if (response.ok) {
         const data = await response.json();
 
-        if (data.status === 'ok' && data.userId) {
-          setCurrentUser({ username: username, id: data.userId });
+        if (data.status === 'ok' && data.token) {
+          setCurrentUser({ username: username, token: data.token });
           setPage(routes.chatList);
         } else {
           alert('Неверный ответ от сервера');
@@ -130,15 +71,6 @@ function App() {
       alert('Сервер недоступен');
     }
   };
-  //   if (response.ok) {
-  //     setCurrentUser({ name: username, id: data.userId });
-  //     // setCurrentUser(username);
-  //     // setPage(routes.chat);
-  //     setPage('chatList')
-  //   } else {
-  //     alert('Ошибка авторизации');
-  //   }
-  // };
 
   const register = async (username, password) => {
     const response = await fetch('/register', {
@@ -200,96 +132,6 @@ function App() {
   }
 
   return null;
-}
-
-
-function LoginPage({ onLogin, onShowRegister }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-
-  return (
-    <div>
-      <h2>Вход</h2>
-      <input placeholder="Логин" value={username} onChange={e => setUsername(e.target.value)} />
-      <input type="password" placeholder="Пароль" value={password} onChange={e => setPassword(e.target.value)} />
-      <button onClick={() => onLogin(username, password)}>Войти</button>
-      <button onClick={onShowRegister}>Регистрация</button>
-    </div>
-  );
-}
-
-function RegisterPage({ onRegister, onShowLogin }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-
-  return (
-    <div>
-      <h2>Регистрация</h2>
-      <input placeholder="Логин" value={username} onChange={e => setUsername(e.target.value)} />
-      <input type="password" placeholder="Пароль" value={password} onChange={e => setPassword(e.target.value)} />
-      <button onClick={() => onRegister(username, password)}>Зарегистрироваться</button>
-      <button onClick={onShowLogin}>Назад</button>
-    </div>
-  );
-}
-
-function ChatListPage({ chats, onSelectChat }) {
-  return (
-    <div>
-      <h2>Список чатов</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {chats.map(chat => (
-          <div
-            key={chat.id}
-            onClick={() => onSelectChat(chat)}
-            style={{
-              padding: '10px',
-              border: '1px solid #ccc',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              backgroundColor: '#f9f9f9'
-            }}
-          >
-            {chat.name}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-
-function ChatPage({ currentChat, messages, onSendMessage, messageInputRef, chatRef, onLogout }) {
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      onSendMessage();
-    }
-  };
-
-  return (
-    <div>
-      <h2>Чат (<span>{currentChat?.name}</span>)</h2>
-      <div
-        id="chat"
-        ref={chatRef}
-        style={{ height: 300, border: '1px solid #ccc', overflowY: 'scroll', padding: 8, marginBottom: 8 }}
-      >
-        {messages.map((msg, i) => (
-          <div key={i}>
-            <strong>{msg.username}:</strong> <span>{msg.message}</span> <small>{new Date(msg.time).toLocaleTimeString()}</small>
-          </div>
-        ))}
-      </div>
-      <input
-        id="message"
-        placeholder="Сообщение"
-        ref={messageInputRef}
-        onKeyPress={handleKeyPress}
-      />
-      <button id="send-message-btn" onClick={onSendMessage}>Отправить</button>
-      <button id="logout-btn" onClick={onLogout}>Выйти</button>
-    </div>
-  );
 }
 
 export default App;
