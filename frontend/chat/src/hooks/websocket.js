@@ -3,6 +3,14 @@ import { useEffect, useRef } from 'react';
 export default function useWebSocket({ page, currentUser, selectedChat, onChatsReceived, onMessageReceived, onUnauthorized, routes }) {
   const socketRef = useRef(null);
 
+  function sendWhenOpen(socket, data) {
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(data);
+    } else {
+      setTimeout(() => sendWhenOpen(socket, data), 50); // проверяем снова через 50 мс
+    }
+  }
+
   useEffect(() => {
     if (page === routes.chatList) {
       if (!socketRef.current){
@@ -17,12 +25,14 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
       }
 
       let socket = socketRef.current
+      // socket.send(JSON.stringify({intent: "get_chats"}))
+      sendWhenOpen(socketRef.current, JSON.stringify({ intent: "get_chats" }));
 
       socket.onmessage = (event) => {
 
         
         const msg = JSON.parse(event.data);
-        console.log("new message : ", msg)
+        console.log("new socket message : ", msg)
 
         // if (msg.intent === `auth` && msg.status !== 'ok') {
         //   socket.close()
@@ -31,7 +41,6 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
         //   }
         // } else 
         if (msg.intent === 'chat_list') {
-          console.log("chat list got :", msg)
           onChatsReceived(msg.chat_list);
         } else if (msg.intent === 'new_message') {
           onMessageReceived(msg);
