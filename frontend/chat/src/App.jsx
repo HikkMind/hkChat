@@ -30,6 +30,10 @@ function App() {
     onMessageReceived: (msg) => {
       setMessages(prev => [...prev, msg]);
     },
+    onUnauthorized: () => {
+      setCurrentUser(null);       // сбрасываем пользователя
+      setPage(routes.login);      // переходим на страницу логина
+    },
     routes
   });
 

@@ -8,7 +8,7 @@ export default function ChatListPage({ chats, onSelectChat }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {chats.map(chat => (
           <div
-            key={chat.id}
+            key={chat.chat_id}
             onClick={() => onSelectChat(chat)}
             style={{
               padding: '10px',
@@ -18,7 +18,7 @@ export default function ChatListPage({ chats, onSelectChat }) {
               backgroundColor: '#f9f9f9'
             }}
           >
-            {chat.name}
+            {chat.chat_name}
           </div>
         ))}
       </div>

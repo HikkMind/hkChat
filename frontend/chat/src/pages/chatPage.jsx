@@ -10,7 +10,7 @@ export default function ChatPage({ currentChat, messages, onSendMessage, message
 
   return (
     <div>
-      <h2>Чат (<span>{currentChat?.name}</span>)</h2>
+      <h2>Чат (<span>{currentChat?.chat_name}</span>)</h2>
       <div
         id="chat"
         ref={chatRef}

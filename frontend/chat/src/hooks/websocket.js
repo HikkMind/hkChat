@@ -1,24 +1,38 @@
 import { useEffect, useRef } from 'react';
 
-export default function useWebSocket({ page, currentUser, selectedChat, onChatsReceived, onMessageReceived, routes }) {
+export default function useWebSocket({ page, currentUser, selectedChat, onChatsReceived, onMessageReceived, onUnauthorized, routes }) {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    if (!socketRef.current && page === routes.chatList) {
-      const socket = new WebSocket(`ws://${window.location.hostname}:5173/chatlist`);
-      socketRef.current = socket;
+    if (page === routes.chatList) {
+      if (!socketRef.current){
+        const socket = new WebSocket(`ws://${window.location.hostname}:5173/chatlist`);
+        socketRef.current = socket;
 
-      socket.onopen = () => {
-        if (currentUser) {
-          socket.send(JSON.stringify({ intent: 'get_chats' }));
-        }
-      };
+        socket.onopen = () => {
+          if (currentUser) {
+              socket.send(JSON.stringify({intent: 'auth', token: currentUser.token}))
+          }
+        };
+      }
+
+      let socket = socketRef.current
 
       socket.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
 
+        
+        const msg = JSON.parse(event.data);
+        console.log("new message : ", msg)
+
+        // if (msg.intent === `auth` && msg.status !== 'ok') {
+        //   socket.close()
+        //   if (onUnauthorized) {
+        //     onUnauthorized?.();
+        //   }
+        // } else 
         if (msg.intent === 'chat_list') {
-          onChatsReceived(msg.chats);
+          console.log("chat list got :", msg)
+          onChatsReceived(msg.chat_list);
         } else if (msg.intent === 'new_message') {
           onMessageReceived(msg);
         }
