@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -19,6 +18,7 @@ type AuthServer struct {
 	database   *gorm.DB
 	tokenUser  map[string]userInfo
 	tokenMutex sync.RWMutex
+	logger     *log.Logger
 }
 
 type authMessage struct {
@@ -45,15 +45,19 @@ func (server *AuthServer) StartServer() {
 	}
 
 	server.tokenUser = make(map[string]userInfo)
+	server.logger = log.Default()
+	server.logger.SetPrefix("[ AUTH ]")
 	server.databaseInit()
 
 	http.HandleFunc("/login", server.authLogin)
 	http.HandleFunc("/logout", server.authLogout)
 	http.HandleFunc("/register", server.authRegister)
 	http.HandleFunc("/checktoken", server.authCheckToken)
+
+	server.logger.Print("start server")
 	err := serverAuth.ListenAndServe()
 	if err != nil {
-		log.Fatalf("failed to start server")
+		server.logger.Fatal("failed to start server")
 	}
 }
 
@@ -73,5 +77,5 @@ func (server *AuthServer) databaseInit() {
 
 	server.database = db
 
-	fmt.Println("connected to database")
+	server.logger.Print("connected to database")
 }

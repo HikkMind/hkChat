@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -15,25 +14,25 @@ func (server *AuthServer) authLogin(responseWriter http.ResponseWriter, request 
 	var authUser authUserRequest
 	err := json.NewDecoder(request.Body).Decode(&authUser)
 	if err != nil {
-		fmt.Println("failed decode auth")
+		server.logger.Print("failed decode login request : ", err)
 		return
 	}
 
 	var user tables.User
 	result := server.database.Where("username = ? AND password = ?", authUser.Username, authUser.Password).First(&user)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		fmt.Println("login error")
+		server.logger.Print("wrong login or password")
 		responseWriter.WriteHeader(http.StatusConflict)
 		return
 	} else if result.Error != nil {
-		fmt.Println("request error : ", result.Error.Error())
+		server.logger.Print("request error : ", result.Error.Error())
 		return
 	}
 
 	authToken := strconv.Itoa(int(user.ID))
 	server.tokenUser[authToken] = userInfo{Username: user.Username, UserId: user.ID}
 
-	fmt.Println("user " + authUser.Username + " logged in")
+	server.logger.Print("user logged in : ", authUser.Username)
 
 	responseWriter.Header().Set("Content-Type", "application/json")
 	responseWriter.WriteHeader(http.StatusOK)
@@ -70,22 +69,23 @@ func (server *AuthServer) authRegister(responseWriter http.ResponseWriter, reque
 	var authUser authUserRequest
 	err := json.NewDecoder(request.Body).Decode(&authUser)
 	if err != nil {
-		fmt.Println("failed decode auth")
+		server.logger.Print("failed decode register request : ", err)
 		return
 	}
 
 	if len(authUser.Username) == 0 || len(authUser.Password) == 0 {
 		responseWriter.WriteHeader(http.StatusConflict)
+		server.logger.Print("(REGISTER) empty login or password")
 	}
 
 	result := server.database.Create(&tables.User{Username: authUser.Username, Password: authUser.Password})
 	if result.Error != nil {
-		fmt.Println("duplicate error")
+		server.logger.Print("failed register new user : ", result.Error.Error())
 		responseWriter.WriteHeader(http.StatusConflict)
 		return
 	}
 
-	fmt.Println("new user : ", authUser.Username)
+	server.logger.Print("register new user : ", authUser.Username)
 	responseWriter.WriteHeader(http.StatusCreated)
 
 }
@@ -96,8 +96,10 @@ func (server *AuthServer) authCheckToken(responseWriter http.ResponseWriter, req
 
 	var checkAuthRequest authMessage
 	err := json.NewDecoder(request.Body).Decode(&checkAuthRequest)
+	server.logger.Print("get new token check request")
 	if err != nil {
 		http.Error(responseWriter, "parse_json_error", http.StatusBadRequest)
+		server.logger.Print("parse auth message error : ", err)
 		return
 	}
 
@@ -105,12 +107,15 @@ func (server *AuthServer) authCheckToken(responseWriter http.ResponseWriter, req
 	defer server.tokenMutex.RUnlock()
 	if user, ok := server.tokenUser[checkAuthRequest.Token]; ok {
 		err = json.NewEncoder(responseWriter).Encode(user)
+		server.logger.Print("accept token of user : ", user.Username)
 		if err != nil {
 			http.Error(responseWriter, "internal error", http.StatusInternalServerError)
+			server.logger.Print("send response error : ", err)
 		}
 		return
 	}
 
 	responseWriter.WriteHeader(http.StatusUnauthorized)
+	server.logger.Print("user unauthorized")
 
 }
