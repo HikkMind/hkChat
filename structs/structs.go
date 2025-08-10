@@ -3,7 +3,7 @@ package structs
 import "time"
 
 type Message struct {
-	Sender  string    `json:"username"`
+	Sender  string    `gorm:"column:username" json:"username"`
 	Message string    `json:"message"`
 	Time    time.Time `json:"time"`
 }
