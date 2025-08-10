@@ -25,7 +25,6 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
       }
 
       let socket = socketRef.current
-      // socket.send(JSON.stringify({intent: "get_chats"}))
       sendWhenOpen(socketRef.current, JSON.stringify({ intent: "get_chats" }));
 
       socket.onmessage = (event) => {
@@ -33,12 +32,6 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
         const msg = JSON.parse(event.data);
         console.log("new socket message : ", msg)
 
-        // if (msg.intent === `auth` && msg.status !== 'ok') {
-        //   socket.close()
-        //   if (onUnauthorized) {
-        //     onUnauthorized?.();
-        //   }
-        // } else 
         if (msg.intent === 'chat_list') {
           onChatsReceived(msg.chat_list);
         } else if (msg.intent === 'send_message') {

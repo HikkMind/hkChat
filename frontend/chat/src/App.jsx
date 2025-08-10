@@ -15,7 +15,6 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [chats, setChats] = useState([]);         
   const [selectedChat, setSelectedChat] = useState(null);
-  // const socketRef = useRef(null);
   const messageInputRef = useRef(null);
   const chatRef = useScrollToBottom([messages]);
 
@@ -31,24 +30,11 @@ function App() {
       setMessages(prev => [...prev, msg]);
     },
     onUnauthorized: () => {
-      setCurrentUser(null);       // сбрасываем пользователя
-      setPage(routes.login);      // переходим на страницу логина
+      setCurrentUser(null);
+      setPage(routes.login);
     },
     routes
   });
-
-  // const sendMessage = () => {
-  //   if (!socketRef.current || !currentUser) return;
-
-  //   const message = {
-  //     intent: 'send_message',
-  //     username: currentUser.username,
-  //     message: messageInputRef.current.value
-  //   };
-
-  //   socketRef.current.send(JSON.stringify(message));
-  //   messageInputRef.current.value = '';
-  // };
 
   const login = async (username, password) => {
     try {
@@ -113,8 +99,8 @@ function App() {
         chats={chats}
         onSelectChat={(chat) => {
           setSelectedChat(chat);
-          setMessages([]);         // очищаем сообщения
-          setPage(routes.chat);    // переходим на страницу чата
+          setMessages([]);
+          setPage(routes.chat);
         }}
         onLogout={logout}
       />

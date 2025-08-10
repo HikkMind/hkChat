@@ -27,9 +27,7 @@ func (server *ChatServer) connectUser(responseWriter http.ResponseWriter, reques
 	var connMessage HandleConnectionMessage
 	err = connection.ReadJSON(&connMessage)
 	server.logger.Print("auth request : ", connMessage)
-	// err = json.NewDecoder(request.Body).Decode(&connMessage)
 	if err != nil || connMessage.Intent != "auth" {
-		// http.Error(responseWriter, "failed ", http.StatusUnauthorized)
 		connection.WriteJSON(HandleConnectionMessage{
 			Intent: "auth",
 			Status: "unauthorized",
@@ -42,7 +40,6 @@ func (server *ChatServer) connectUser(responseWriter http.ResponseWriter, reques
 	var currentUser *userInfo = server.checkAuthToken(connMessage.Token)
 
 	if currentUser == nil {
-		// http.Error(responseWriter, "unauthorized token", http.StatusUnauthorized)
 		connection.WriteJSON(HandleConnectionMessage{
 			Intent: "auth",
 			Status: "unauthorized",
@@ -61,5 +58,4 @@ func (server *ChatServer) connectUser(responseWriter http.ResponseWriter, reques
 
 	server.logger.Print("handle new user : ", currentUser.Username)
 	go server.handleUserConnection(connection, currentUser)
-	// websocketConnection = connection
 }

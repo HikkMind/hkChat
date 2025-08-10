@@ -10,18 +10,6 @@ import (
 	"github.com/hikkmind/hkchat/structs"
 )
 
-// type ConnectionChatMessage struct {
-// 	Intent string `json:"intent"`
-// 	ChatId int    `json:"id"`
-// 	// Name         string            `json:"name"`
-// 	// UserId       int               `json:"userId"`
-// 	// Username     string            `json:"username"`
-// 	Message string `json:"message"`
-// 	// ChatList     []ChatListMessage `json:"all_chats"`
-// 	// UserChannels chat.UserChannels `json:"-"`
-// 	Token string `json:"token"`
-// }
-
 type ChatInfo struct {
 	ChatId   uint   `json:"chat_id"`
 	ChatName string `json:"chat_name"`
@@ -71,7 +59,6 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 		server.logger.Print("new chat signal : ", message)
 		if message.Intent == JoinChat {
 
-			// inputChannel = make(chan structs.Message)
 			outputChannel = make(chan structs.Message)
 
 			sendingContext, sendingContextCancel = context.WithCancel(context.Background())
@@ -80,9 +67,8 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 			chatChannel, ok := server.chatList[uint(message.ChatId)]
 			if ok {
 				chatChannel <- chat.ControlMessage{
-					Signal: chat.Join,
-					UserID: int(currentUser.UserId),
-					// InputChannel:  inputChannel,
+					Signal:        chat.Join,
+					UserID:        int(currentUser.UserId),
 					OutputChannel: outputChannel,
 				}
 			} else {
@@ -97,7 +83,6 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 			if sendingContextCancel != nil {
 				sendingContextCancel()
 			}
-			// inputChannel = nil
 			outputChannel = nil
 
 		} else if message.Intent == SendMessage {
@@ -115,9 +100,6 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 			} else {
 				server.logger.Print("wrong join chat_id")
 			}
-			// if inputChannel != nil {
-			// 	inputChannel <- server.createNewMessage(message, *currentUser)
-			// }
 		} else if message.Intent == GetChats {
 			allChats := make([]ChatInfo, len(server.chatListName))
 			ind := 0
@@ -139,31 +121,7 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 	}
 }
 
-// func (server *ChatServer) createNewMessage(message HandleConnectionMessage, currentUser userInfo) structs.Message {
-
-// 	messageTime := time.Now()
-
-// 	// var user tables.User
-// 	// server.database.First(&user, "id = ?", message.UserId)
-// 	tableMessage := tables.Message{
-// 		SenderID:  uint(currentUser.UserId),
-// 		Message:   message.Text,
-// 		CreatedAt: messageTime,
-// 	}
-// 	server.database.Create(&tableMessage)
-
-// 	newMessage := structs.Message{
-// 		Sender:  currentUser.Username,
-// 		Message: message.Text,
-// 		Time:    messageTime,
-// 	}
-
-// 	return newMessage
-// }
-
 func (server *ChatServer) handleMessageSending(ctx context.Context, connection *websocket.Conn, outputChannel <-chan structs.Message) {
-
-	// var messageConnection structs.Message
 
 	for {
 		select {
