@@ -8,7 +8,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/hikkmind/hkchat/server/tables"
+	"github.com/hikkmind/hkchat/tables"
 	"github.com/lpernett/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

@@ -5,7 +5,7 @@ WORKDIR /app
 COPY ./go.mod ./go.sum ./
 COPY ./auth ./auth
 COPY ./server/.dbenv ./auth
-COPY ./server/tables ./server/tables
+COPY ./tables ./tables
 RUN go mod download
 
 WORKDIR /app/auth

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/hikkmind/hkchat/server/tables"
+	"github.com/hikkmind/hkchat/tables"
 	"gorm.io/gorm"
 )
 
