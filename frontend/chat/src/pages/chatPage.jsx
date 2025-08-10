@@ -8,6 +8,20 @@ export default function ChatPage({ currentChat, messages, onSendMessage, message
     }
   };
 
+  const handleSend = () => {
+    const text = messageInputRef.current.value.trim();
+    if (!text) return;
+
+    const msgObj = {
+      intent: 'send_message',
+      text: text
+    };
+
+    onSendMessage(msgObj);
+
+    messageInputRef.current.value = '';
+  };
+
   return (
     <div>
       <h2>Чат (<span>{currentChat?.chat_name}</span>)</h2>
@@ -26,9 +40,9 @@ export default function ChatPage({ currentChat, messages, onSendMessage, message
         id="message"
         placeholder="Сообщение"
         ref={messageInputRef}
-        onKeyPress={handleKeyPress}
+        onKeyDown={handleKeyPress}
       />
-      <button id="send-message-btn" onClick={onSendMessage}>Отправить</button>
+      <button id="send-message-btn" onClick={handleSend}>Отправить</button>
       <button id="logout-btn" onClick={onLogout}>Выйти</button>
     </div>
   );

@@ -29,7 +29,6 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
       sendWhenOpen(socketRef.current, JSON.stringify({ intent: "get_chats" }));
 
       socket.onmessage = (event) => {
-
         
         const msg = JSON.parse(event.data);
         console.log("new socket message : ", msg)
@@ -42,7 +41,7 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
         // } else 
         if (msg.intent === 'chat_list') {
           onChatsReceived(msg.chat_list);
-        } else if (msg.intent === 'new_message') {
+        } else if (msg.intent === 'send_message') {
           onMessageReceived(msg);
         }
       };
@@ -57,20 +56,22 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
     if (page === routes.chat && currentUser && socketRef.current && selectedChat) {
       const joinMessage = JSON.stringify({
         intent: 'join_chat',
-        chatId: selectedChat.id,
+        chat_id: selectedChat.chat_id,
         name: selectedChat.name,
         userId: currentUser.id,
       });
 
+      const sendJoin = () => socketRef.current.send(joinMessage);
+
       if (socketRef.current.readyState === WebSocket.OPEN) {
-        socketRef.current.send(joinMessage);
+        sendJoin();
       } else {
-        socketRef.current.onopen = () => {
-          socketRef.current.send(joinMessage);
-        };
+        socketRef.current.addEventListener('open', sendJoin, { once: true });
       }
+
+
     }
-  }, [page, selectedChat]);
+  }, [page, selectedChat, currentUser]);
 
   useEffect(() => {
     return () => {
