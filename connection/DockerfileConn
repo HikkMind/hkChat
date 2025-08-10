@@ -1,0 +1,23 @@
+FROM golang:alpine AS builder
+
+WORKDIR /app
+
+COPY ./go.mod ./go.sum ./
+COPY ./structs ./structs
+COPY ./connection ./connection
+COPY ./server/.dbenv ./connection
+COPY ./tables ./tables
+RUN go mod download
+
+WORKDIR /app/connection
+
+RUN go build -o connection
+
+FROM alpine:3
+COPY --from=builder /app/connection/connection /bin/connection
+COPY --from=builder /app/connection/.dbenv /bin/.dbenv
+EXPOSE 8080
+
+WORKDIR /bin
+
+ENTRYPOINT ["./connection"]
