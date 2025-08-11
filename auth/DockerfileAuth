@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY ./go.mod ./go.sum ./
 COPY ./auth ./auth
-COPY ./server/.dbenv ./auth
+COPY ./.dbenv ./auth
 COPY ./tables ./tables
 RUN go mod download
 

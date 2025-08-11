@@ -5,7 +5,7 @@ WORKDIR /app
 COPY ./go.mod ./go.sum ./
 COPY ./structs ./structs
 COPY ./connection ./connection
-COPY ./server/.dbenv ./connection
+COPY ./.dbenv ./connection
 COPY ./tables ./tables
 RUN go mod download
 
