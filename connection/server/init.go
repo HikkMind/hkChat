@@ -83,8 +83,10 @@ func (server *ChatServer) loadChats() {
 
 	for _, currentChat := range allChats {
 		chatChannel := make(chan chat.ControlMessage)
+
 		server.chatList[currentChat.ID] = chatChannel
 		server.chatListName[currentChat.ID] = currentChat.Name
+
 		go chat.HandleChat(chatChannel, currentChat.ID, server.database)
 	}
 }

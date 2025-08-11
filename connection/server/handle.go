@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -17,45 +16,54 @@ func (server *ChatServer) connectUser(responseWriter http.ResponseWriter, reques
 
 	server.logger.Print("try connect websocket")
 
-	connection, err := websocketUpgrader.Upgrade(responseWriter, request, nil)
+	websocketConnection, err := websocketUpgrader.Upgrade(responseWriter, request, nil)
 	if err != nil {
-		fmt.Println("failed upgrade connection : ", err)
+		server.logger.Print("failed upgrade websocket : ", err)
 		return
 	}
 	server.logger.Print("connected new websocket")
 
+	currentUser := server.verifyUserToken(websocketConnection)
+	if currentUser == nil {
+		return
+	}
+
+	server.logger.Print("handle new user : ", currentUser.Username)
+	go server.handleUserConnection(websocketConnection, currentUser)
+}
+
+func (server *ChatServer) verifyUserToken(websocketConnection *websocket.Conn) *userInfo {
 	var connMessage HandleConnectionMessage
-	err = connection.ReadJSON(&connMessage)
+	err := websocketConnection.ReadJSON(&connMessage)
 	server.logger.Print("auth request : ", connMessage)
 	if err != nil || connMessage.Intent != "auth" {
-		connection.WriteJSON(HandleConnectionMessage{
+		websocketConnection.WriteJSON(HandleConnectionMessage{
 			Intent: "auth",
 			Status: "unauthorized",
 		})
-		connection.Close()
+		websocketConnection.Close()
 		server.logger.Print("wrong auth request")
-		return
+		return nil
 	}
 
 	var currentUser *userInfo = server.checkAuthToken(connMessage.Token)
 
 	if currentUser == nil {
-		connection.WriteJSON(HandleConnectionMessage{
+		websocketConnection.WriteJSON(HandleConnectionMessage{
 			Intent: "auth",
 			Status: "unauthorized",
 		})
-		connection.Close()
+		websocketConnection.Close()
 		server.logger.Print("unauthorized user")
-		return
+		return nil
 	}
 	currentUser.Token = connMessage.Token
 
-	connection.WriteJSON(HandleConnectionMessage{
+	websocketConnection.WriteJSON(HandleConnectionMessage{
 		Intent: "auth",
 		Status: "ok",
 		Token:  connMessage.Token,
 	})
 
-	server.logger.Print("handle new user : ", currentUser.Username)
-	go server.handleUserConnection(connection, currentUser)
+	return currentUser
 }

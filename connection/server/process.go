@@ -39,14 +39,13 @@ const (
 func (server *ChatServer) handleUserConnection(connection *websocket.Conn, currentUser *userInfo) {
 
 	defer connection.Close()
+	defer server.logger.Println("finish handle connection for :", currentUser.UserId, currentUser.Username)
 
-	var outputChannel chan structs.Message
-
+	var sendingContextCancel context.CancelFunc
 	var message HandleConnectionMessage
+
 	for {
 		messageType, msg, err := connection.ReadMessage()
-		var sendingContextCancel context.CancelFunc
-		var sendingContext context.Context
 
 		if messageType == websocket.CloseMessage || err != nil {
 			if sendingContextCancel != nil {
@@ -57,71 +56,90 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 
 		json.Unmarshal(msg, &message)
 		server.logger.Print("new chat signal : ", message)
+
 		if message.Intent == JoinChat {
-
-			outputChannel = make(chan structs.Message)
-
-			sendingContext, sendingContextCancel = context.WithCancel(context.Background())
-			go server.handleMessageSending(sendingContext, connection, outputChannel)
-
-			chatChannel, ok := server.chatList[uint(message.ChatId)]
-			if ok {
-				chatChannel <- chat.ControlMessage{
-					Signal:        chat.Join,
-					UserID:        int(currentUser.UserId),
-					OutputChannel: outputChannel,
-				}
-			} else {
-				server.logger.Print("wrong join chat_id")
-			}
+			sendingContextCancel = server.handleUserJoin(connection, uint(message.ChatId), currentUser)
+			server.logger.Print("joined user {", currentUser.Username, "}")
 
 		} else if message.Intent == LeaveChat {
-			server.chatList[uint(message.ChatId)] <- chat.ControlMessage{
-				Signal: chat.Leave,
-				UserID: int(currentUser.UserId),
-			}
-			if sendingContextCancel != nil {
-				sendingContextCancel()
-			}
-			outputChannel = nil
+			server.handleUserLeave(sendingContextCancel, uint(message.ChatId), int(currentUser.UserId))
+			server.logger.Print("leaved user {", currentUser.Username, "}")
 
 		} else if message.Intent == SendMessage {
-			if len(message.Text) == 0 {
-				continue
-			}
-			chatChannel, ok := server.chatList[uint(message.ChatId)]
-			if ok {
-				chatChannel <- chat.ControlMessage{
-					Signal:   chat.SendMessage,
-					UserID:   int(currentUser.UserId),
-					Username: currentUser.Username,
-					Message:  message.Text,
-				}
-			} else {
-				server.logger.Print("wrong join chat_id")
-			}
+			server.handleUserSendMessage(message, currentUser)
 		} else if message.Intent == GetChats {
-			allChats := make([]ChatInfo, len(server.chatListName))
-			ind := 0
-			for chatId, chatName := range server.chatListName {
-				allChats[ind] = ChatInfo{
-					ChatId:   chatId,
-					ChatName: chatName,
-				}
-				ind++
-			}
-
-			answer := ChatListInfo{
-				Intent:   "chat_list",
-				Status:   "ok",
-				ChatList: allChats,
-			}
-			connection.WriteJSON(answer)
+			server.handleUserGetChats(connection)
 		}
 	}
 }
 
-func (server *ChatServer) handleMessageSending(ctx context.Context, connection *websocket.Conn, outputChannel <-chan structs.Message) {
+func (server *ChatServer) handleUserJoin(websocketConnection *websocket.Conn, chatId uint, currentUser *userInfo) context.CancelFunc {
+	chatContext, chatContextCancel := context.WithCancel(context.Background())
+	outputChannel := make(chan structs.Message)
+	chatChannel, ok := server.chatList[chatId]
+	go server.handleConnectionMessageSending(chatContext, websocketConnection, outputChannel)
+	if ok {
+		chatChannel <- chat.ControlMessage{
+			Signal:        chat.Join,
+			UserID:        int(currentUser.UserId),
+			OutputChannel: outputChannel,
+		}
+	} else {
+		server.logger.Print("wrong join chat_id")
+	}
+
+	return chatContextCancel
+}
+
+func (server *ChatServer) handleUserLeave(chatContextCancel context.CancelFunc, chatId uint, userId int) {
+	server.chatList[chatId] <- chat.ControlMessage{
+		Signal: chat.Leave,
+		UserID: userId,
+	}
+	if chatContextCancel != nil {
+		chatContextCancel()
+	}
+}
+
+func (server *ChatServer) handleUserSendMessage(userMessage HandleConnectionMessage, currentUser *userInfo) bool {
+	if len(userMessage.Text) == 0 {
+		return false
+	}
+	chatChannel, ok := server.chatList[uint(userMessage.ChatId)]
+	if ok {
+		chatChannel <- chat.ControlMessage{
+			Signal:   chat.SendMessage,
+			UserID:   int(currentUser.UserId),
+			Username: currentUser.Username,
+			Message:  userMessage.Text,
+		}
+		return true
+	} else {
+		server.logger.Print("wrong join chat_id")
+	}
+	return false
+}
+
+func (server *ChatServer) handleUserGetChats(websocketConnection *websocket.Conn) {
+	allChats := make([]ChatInfo, len(server.chatListName))
+	ind := 0
+	for chatId, chatName := range server.chatListName {
+		allChats[ind] = ChatInfo{
+			ChatId:   chatId,
+			ChatName: chatName,
+		}
+		ind++
+	}
+
+	answer := ChatListInfo{
+		Intent:   "chat_list",
+		Status:   "ok",
+		ChatList: allChats,
+	}
+	websocketConnection.WriteJSON(answer)
+}
+
+func (server *ChatServer) handleConnectionMessageSending(ctx context.Context, connection *websocket.Conn, outputChannel <-chan structs.Message) {
 
 	for {
 		select {
