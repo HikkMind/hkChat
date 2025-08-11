@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 
-export default function ChatPage({ currentChat, messages, onSendMessage, messageInputRef, chatRef, onLogout }) {
+export default function ChatPage({ currentChat, messages, onSendMessage, messageInputRef, chatRef, onLogout, onChatlist }) {
   
   const handleSend = () => {
     const text = messageInputRef.current.value.trim();
@@ -43,6 +43,7 @@ export default function ChatPage({ currentChat, messages, onSendMessage, message
         onKeyDown={handleKeyPress}
       />
       <button id="send-message-btn" onClick={handleSend}>Отправить</button>
+      <button id="chatlist-btn" onClick={onChatlist}>Чаты</button>
       <button id="logout-btn" onClick={onLogout}>Выйти</button>
     </div>
   );

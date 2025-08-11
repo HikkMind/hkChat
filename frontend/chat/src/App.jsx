@@ -118,6 +118,7 @@ function App() {
         messageInputRef={messageInputRef}
         chatRef={chatRef}
         onLogout={logout}
+        onChatlist={() => setPage(routes.chatList)}
       />
     );
   }
