@@ -76,6 +76,22 @@ function App() {
     }
   };
 
+  const joinChat = (chat) => {
+    setSelectedChat(chat);
+    setMessages([]);
+    setPage(routes.chat);
+  }
+
+  const leaveChat = () => {
+    if (socketRef.current) {
+      socketRef.current.send(JSON.stringify({
+        intent: "leave_chat",
+        chat_id: selectedChat.chat_id
+      }))
+    }
+    setPage(routes.chatList)
+  }
+
   const logout = () => {
     if (socketRef.current) socketRef.current.close();
     setCurrentUser(null);
@@ -98,11 +114,7 @@ function App() {
     return (
       <ChatListPage
         chats={chats}
-        onSelectChat={(chat) => {
-          setSelectedChat(chat);
-          setMessages([]);
-          setPage(routes.chat);
-        }}
+        onSelectChat={joinChat}
         onLogout={logout}
       />
     );
@@ -118,7 +130,7 @@ function App() {
         messageInputRef={messageInputRef}
         chatRef={chatRef}
         onLogout={logout}
-        onChatlist={() => setPage(routes.chatList)}
+        onChatlist={leaveChat}
       />
     );
   }
