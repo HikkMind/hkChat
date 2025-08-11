@@ -2,12 +2,7 @@ import React from 'react';
 import { useState } from 'react';
 
 export default function ChatPage({ currentChat, messages, onSendMessage, messageInputRef, chatRef, onLogout }) {
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      onSendMessage();
-    }
-  };
-
+  
   const handleSend = () => {
     const text = messageInputRef.current.value.trim();
     if (!text) return;
@@ -16,12 +11,17 @@ export default function ChatPage({ currentChat, messages, onSendMessage, message
       intent: 'send_message',
       text: text
     };
-
+    
     onSendMessage(msgObj);
-
+    
     messageInputRef.current.value = '';
   };
-
+  
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSend();
+    }
+  };
   return (
     <div>
       <h2>Чат (<span>{currentChat?.chat_name}</span>)</h2>
