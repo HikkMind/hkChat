@@ -14,7 +14,10 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
   useEffect(() => {
     if (page === routes.chatList) {
       if (!socketRef.current){
-        const socket = new WebSocket(`ws://${window.location.hostname}:5173/chatlist`);
+        // const socket = new WebSocket(`ws://${window.location.hostname}:5173/chatlist`);
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const socket = new WebSocket(`${protocol}//${window.location.host}/chatlist`);
+
         socketRef.current = socket;
 
         socket.onopen = () => {
