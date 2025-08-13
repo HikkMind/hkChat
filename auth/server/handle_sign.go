@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
+	"time"
 
 	"github.com/hikkmind/hkchat/tables"
 	"gorm.io/gorm"
@@ -29,17 +29,40 @@ func (server *AuthServer) authLogin(responseWriter http.ResponseWriter, request 
 		return
 	}
 
-	authToken := strconv.Itoa(int(user.ID))
-	server.tokenUser[authToken] = userInfo{Username: user.Username, UserId: user.ID}
+	// authToken := strconv.Itoa(int(user.ID))
+	accessToken, err := server.generateToken(authUser, "access")
+	if len(accessToken) == 0 || err != nil {
+		server.logger.Print("failed generate access token : ", err)
+		http.Error(responseWriter, "failed generate access token", http.StatusInternalServerError)
+		return
+	}
+	server.tokenUser[accessToken] = userInfo{Username: user.Username, UserId: user.ID}
+
+	refreshToken, err := server.generateToken(authUser, "refresh")
+	if len(refreshToken) == 0 || err != nil {
+		server.logger.Print("failed generate refresh token : ", err)
+		http.Error(responseWriter, "failed generate refresh token", http.StatusInternalServerError)
+		return
+	}
 
 	server.logger.Print("user logged in : ", authUser.Username)
+
+	http.SetCookie(responseWriter, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteStrictMode,
+		Expires:  time.Now().Add(refreshTTL),
+	})
 
 	responseWriter.Header().Set("Content-Type", "application/json")
 	responseWriter.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(responseWriter).Encode(authMessage{
-		Status: "ok",
-		Token:  authToken,
+		Status:      "ok",
+		AccessToken: accessToken,
 	})
 
 }
@@ -53,13 +76,13 @@ func (server *AuthServer) authLogout(responseWriter http.ResponseWriter, request
 	}
 
 	server.tokenMutex.RLock()
-	if _, ok := server.tokenUser[logoutMessage.Token]; !ok {
+	if _, ok := server.tokenUser[logoutMessage.AccessToken]; !ok {
 		http.Error(responseWriter, "wrong_token", http.StatusBadRequest)
 	}
 
 	server.tokenMutex.RUnlock()
 	server.tokenMutex.Lock()
-	delete(server.tokenUser, logoutMessage.Token)
+	delete(server.tokenUser, logoutMessage.AccessToken)
 	server.tokenMutex.Unlock()
 
 	responseWriter.WriteHeader(http.StatusOK)
@@ -87,35 +110,5 @@ func (server *AuthServer) authRegister(responseWriter http.ResponseWriter, reque
 
 	server.logger.Print("register new user : ", authUser.Username)
 	responseWriter.WriteHeader(http.StatusCreated)
-
-}
-
-func (server *AuthServer) authCheckToken(responseWriter http.ResponseWriter, request *http.Request) {
-
-	responseWriter.Header().Set("Content-Type", "application/json")
-
-	var checkAuthRequest authMessage
-	err := json.NewDecoder(request.Body).Decode(&checkAuthRequest)
-	server.logger.Print("get new token check request")
-	if err != nil {
-		http.Error(responseWriter, "parse_json_error", http.StatusBadRequest)
-		server.logger.Print("parse auth message error : ", err)
-		return
-	}
-
-	server.tokenMutex.RLock()
-	defer server.tokenMutex.RUnlock()
-	if user, ok := server.tokenUser[checkAuthRequest.Token]; ok {
-		err = json.NewEncoder(responseWriter).Encode(user)
-		server.logger.Print("accept token of user : ", user.Username)
-		if err != nil {
-			http.Error(responseWriter, "internal error", http.StatusInternalServerError)
-			server.logger.Print("send response error : ", err)
-		}
-		return
-	}
-
-	responseWriter.WriteHeader(http.StatusUnauthorized)
-	server.logger.Print("user unauthorized")
 
 }

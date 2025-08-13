@@ -22,8 +22,9 @@ type AuthServer struct {
 }
 
 type authMessage struct {
-	Status string `json:"status"`
-	Token  string `json:"token"`
+	Status      string `json:"status"`
+	AccessToken string `json:"access_token"`
+	// RefreshToken string `json:"refresh_token"`
 }
 
 type authUserRequest struct {
@@ -44,15 +45,14 @@ func (server *AuthServer) StartServer() {
 		},
 	}
 
-	server.tokenUser = make(map[string]userInfo)
-	server.logger = log.Default()
-	server.logger.SetPrefix("[ AUTH ]")
+	server.serverVariablesInit()
 	server.databaseInit()
 
 	http.HandleFunc("/login", server.authLogin)
 	http.HandleFunc("/logout", server.authLogout)
 	http.HandleFunc("/register", server.authRegister)
 	http.HandleFunc("/checktoken", server.authCheckToken)
+	http.HandleFunc("/verifytoken", server.verifyAccessToken)
 
 	server.logger.Print("start server")
 	err := serverAuth.ListenAndServe()
@@ -61,11 +61,24 @@ func (server *AuthServer) StartServer() {
 	}
 }
 
-func (server *AuthServer) databaseInit() {
+func (server *AuthServer) serverVariablesInit() {
 	err := godotenv.Load(".dbenv")
 	if err != nil {
 		log.Fatal("Error loading .env file : ", err)
 	}
+	secretKey = []byte(os.Getenv("SECRET_KEY"))
+	refreshSecretKey = []byte(os.Getenv("REFRESH_SECRET_KEY"))
+
+	server.tokenUser = make(map[string]userInfo)
+	server.logger = log.Default()
+	server.logger.SetPrefix("[ AUTH ]")
+}
+
+func (server *AuthServer) databaseInit() {
+	// err := godotenv.Load(".dbenv")
+	// if err != nil {
+	// 	log.Fatal("Error loading .env file : ", err)
+	// }
 	dsn := os.Getenv("DB_CONFIG")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

@@ -6,6 +6,7 @@ import ChatPage from './pages/chatPage';
 import useWebSocket from './hooks/websocket';
 import useScrollToBottom from './hooks/scrollbottom';
 import routes from `./constant/routes`
+import {verifyAccessToken} from './hooks/verifytoken';
 
 
 
@@ -36,10 +37,15 @@ function App() {
     routes
   });
 
+  useEffect(() => {
+    verifyAccessToken(setCurrentUser, setPage, routes);
+  }, []);
+
   const login = async (username, password) => {
     try {
       const response = await fetch('/login', {
         method: 'POST',
+        credentials: "include",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
@@ -47,9 +53,11 @@ function App() {
       if (response.ok) {
         const data = await response.json();
 
-        if (data.status === 'ok' && data.token) {
-          setCurrentUser({ username: username, token: data.token });
+        if (data.status === 'ok' && data.access_token) {
+          setCurrentUser({ username: username, accessToken: data.access_token });
           setPage(routes.chatList);
+          localStorage.setItem("accessToken", data.access_token);
+          localStorage.setItem("username", username);
         } else {
           alert('Неверный ответ от сервера');
         }

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -14,21 +13,21 @@ type authMessage struct {
 
 func (server *ChatServer) checkAuthToken(token string) *userInfo {
 
-	checkMessage := authMessage{
-		Status: "check_auth",
-		Token:  token,
-	}
-	requestBody, _ := json.Marshal(checkMessage)
-	requestBodyReader := bytes.NewBuffer(requestBody)
+	// checkMessage := authMessage{
+	// 	Status: "check_auth",
+	// }
+	// requestBody, _ := json.Marshal(checkMessage)
+	// requestBodyReader := bytes.NewBuffer(requestBody)
 
-	authClient := http.Client{}
-	authRequest, err := http.NewRequest("GET", "http://auth:8081/checktoken", requestBodyReader)
+	authRequest, err := http.NewRequest("GET", "http://auth:8081/checktoken", nil)
 	if err != nil {
 		server.logger.Print("Create auth request error:", err)
 		return nil
 	}
 	authRequest.Header.Set("Content-Type", "application/json")
+	authRequest.Header.Set("Authorization", "Bearer "+token)
 
+	authClient := http.Client{}
 	authResponse, err := authClient.Do(authRequest)
 	if err != nil {
 		server.logger.Print("Check token error:", err)

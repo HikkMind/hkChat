@@ -10,6 +10,7 @@ export default {
     proxy: {
       '/login': 'http://auth:8081',
       '/register': 'http://auth:8081',
+      '/verifytoken': 'http://auth:8081',
       // '/chatlist': {
       //   target: 'ws://connection:8080',
       //   ws: true,
