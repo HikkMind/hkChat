@@ -52,7 +52,7 @@ func (server *AuthServer) authLogin(responseWriter http.ResponseWriter, request 
 		Value:    refreshToken,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   false,
+		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
 		Expires:  time.Now().Add(refreshTTL),
 	})
