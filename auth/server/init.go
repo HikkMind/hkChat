@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/hikkmind/hkchat/tables"
 	"github.com/lpernett/godotenv"
@@ -80,8 +81,13 @@ func (server *AuthServer) serverVariablesInit() {
 	secretKey = []byte(os.Getenv("SECRET_KEY"))
 	refreshSecretKey = []byte(os.Getenv("REFRESH_SECRET_KEY"))
 
+	usernameMinLength, err = strconv.Atoi(os.Getenv("USERNAME_LENGTH"))
+	passwordMinLength, err = strconv.Atoi(os.Getenv("PASSWORD_LENGTH"))
+	if err != nil {
+		server.logger.Fatal("error get user settings from environment : ", err)
+	}
+
 	server.redisContext, server.redisContextCancel = context.WithCancel(context.Background())
-	// server.tokenUser = make(map[string]userInfo)
 }
 
 func (server *AuthServer) databaseInit() {

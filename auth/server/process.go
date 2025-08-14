@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/hikkmind/hkchat/tables"
+	"gorm.io/gorm"
 )
 
 type Claims struct {
@@ -22,6 +24,7 @@ var (
 const (
 	accessTTL  time.Duration = 10 * time.Minute
 	refreshTTL time.Duration = 7 * 24 * time.Hour
+	// refreshTTL time.Duration = 20 * time.Second
 )
 
 func (server *AuthServer) generateToken(currentUser authUserRequest, tokenType string) (string, error) {
@@ -56,6 +59,34 @@ func (server *AuthServer) generateToken(currentUser authUserRequest, tokenType s
 	server.logger.Print("genereted new " + tokenType + " token")
 
 	return tokenString, nil
+}
+
+func (server *AuthServer) getUserInfo(authUser authUserRequest, user *tables.User) bool {
+	result := server.database.Where("username = ? AND password = ?", authUser.Username, authUser.Password).First(&user)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		server.logger.Print("wrong login or password")
+		// responseWriter.WriteHeader(http.StatusConflict)
+		return false
+	} else if result.Error != nil {
+		server.logger.Print("request error : ", result.Error.Error())
+		return false
+	}
+	return true
+}
+
+func (server *AuthServer) generateTokenLogin(authUser authUserRequest) (string, string) {
+	accessToken, err := server.generateToken(authUser, "access")
+	if len(accessToken) == 0 || err != nil {
+		server.logger.Print("failed generate access token : ", err)
+		return "", ""
+	}
+
+	refreshToken, err := server.generateToken(authUser, "refresh")
+	if len(refreshToken) == 0 || err != nil {
+		server.logger.Print("failed generate refresh token : ", err)
+		return "", ""
+	}
+	return accessToken, refreshToken
 }
 
 func (server *AuthServer) parseAccessRequestToken(requestToken string) (string, bool) {

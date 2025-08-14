@@ -2,12 +2,15 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
 
 	"github.com/hikkmind/hkchat/tables"
-	"gorm.io/gorm"
+)
+
+var (
+	usernameMinLength int
+	passwordMinLength int
 )
 
 func (server *AuthServer) authLogin(responseWriter http.ResponseWriter, request *http.Request) {
@@ -19,39 +22,21 @@ func (server *AuthServer) authLogin(responseWriter http.ResponseWriter, request 
 	}
 
 	var user tables.User
-	result := server.database.Where("username = ? AND password = ?", authUser.Username, authUser.Password).First(&user)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		server.logger.Print("wrong login or password")
-		responseWriter.WriteHeader(http.StatusConflict)
-		return
-	} else if result.Error != nil {
-		server.logger.Print("request error : ", result.Error.Error())
+	ok := server.getUserInfo(authUser, &user)
+	if !ok {
+		http.Error(responseWriter, "wrong login or password", http.StatusUnauthorized)
 		return
 	}
 
-	// authToken := strconv.Itoa(int(user.ID))
 	authUser.UserId = user.ID
-	accessToken, err := server.generateToken(authUser, "access")
-	if len(accessToken) == 0 || err != nil {
-		server.logger.Print("failed generate access token : ", err)
-		http.Error(responseWriter, "failed generate access token", http.StatusInternalServerError)
-		return
-	}
-	// server.tokenUser[accessToken] = userInfo{Username: user.Username, UserId: user.ID}
 
-	refreshToken, err := server.generateToken(authUser, "refresh")
-	if len(refreshToken) == 0 || err != nil {
-		server.logger.Print("failed generate refresh token : ", err)
-		http.Error(responseWriter, "failed generate refresh token", http.StatusInternalServerError)
-		return
+	accessToken, refreshToken := server.generateTokenLogin(authUser)
+	if len(accessToken) == 0 || len(refreshToken) == 0 {
+		http.Error(responseWriter, "failed generate access/refresh token", http.StatusInternalServerError)
 	}
 
 	server.logger.Print("user logged in : ", authUser.Username)
-	currentUser := userInfo{Username: user.Username, UserId: user.ID}
-	userData, _ := json.Marshal(currentUser)
-	server.redisDatabase.Set(server.redisContext, "refresh:"+refreshToken, userData, refreshTTL)
-	server.redisDatabase.Set(server.redisContext, accessToken, userData, accessTTL)
-	server.logger.Print("set refresh:" + refreshToken)
+	server.redisDatabase.Set(server.redisContext, "refresh:"+refreshToken, "", refreshTTL)
 
 	http.SetCookie(responseWriter, &http.Cookie{
 		Name:     "refresh_token",
@@ -81,22 +66,9 @@ func (server *AuthServer) authLogout(responseWriter http.ResponseWriter, request
 		http.Error(responseWriter, "parse_json_error", http.StatusBadRequest)
 	}
 
-	refreshCookie, err := request.Cookie("refresh_token")
+	refreshCookie, _ := request.Cookie("refresh_token")
 
-	err = server.redisDatabase.Del(server.redisContext, "refresh:"+refreshCookie.Value).Err()
-	if err != nil {
-		server.logger.Print("failed find refresh token for logout")
-	}
-
-	// server.tokenMutex.RLock()
-	// if _, ok := server.tokenUser[logoutMessage.AccessToken]; !ok {
-	// 	http.Error(responseWriter, "wrong_token", http.StatusBadRequest)
-	// }
-
-	// server.tokenMutex.RUnlock()
-	// server.tokenMutex.Lock()
-	// delete(server.tokenUser, logoutMessage.AccessToken)
-	// server.tokenMutex.Unlock()
+	server.redisDatabase.Del(server.redisContext, "refresh:"+refreshCookie.Value).Err()
 
 	responseWriter.WriteHeader(http.StatusOK)
 }
@@ -105,19 +77,20 @@ func (server *AuthServer) authRegister(responseWriter http.ResponseWriter, reque
 	var authUser authUserRequest
 	err := json.NewDecoder(request.Body).Decode(&authUser)
 	if err != nil {
+		responseWriter.WriteHeader(http.StatusInternalServerError)
 		server.logger.Print("failed decode register request : ", err)
 		return
 	}
 
-	if len(authUser.Username) == 0 || len(authUser.Password) == 0 {
-		responseWriter.WriteHeader(http.StatusConflict)
+	if len(authUser.Username) < usernameMinLength || len(authUser.Password) < passwordMinLength {
+		responseWriter.WriteHeader(http.StatusUnauthorized)
 		server.logger.Print("(REGISTER) empty login or password")
 	}
 
 	result := server.database.Create(&tables.User{Username: authUser.Username, Password: authUser.Password})
 	if result.Error != nil {
 		server.logger.Print("failed register new user : ", result.Error.Error())
-		responseWriter.WriteHeader(http.StatusConflict)
+		responseWriter.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
