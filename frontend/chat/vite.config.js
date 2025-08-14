@@ -5,7 +5,7 @@ export default {
     hmr: {
       host: 'localhost',
       // port: 80,
-      protocol: 'ws',
+      protocol: 'wss',
     },
     proxy: {
       '/login': 'http://auth:8081',
