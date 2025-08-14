@@ -6,19 +6,23 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"sync"
 
 	"github.com/hikkmind/hkchat/tables"
 	"github.com/lpernett/godotenv"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 type AuthServer struct {
-	database   *gorm.DB
-	tokenUser  map[string]userInfo
-	tokenMutex sync.RWMutex
-	logger     *log.Logger
+	database           *gorm.DB
+	redisDatabase      *redis.Client
+	redisContext       context.Context
+	redisContextCancel context.CancelFunc
+
+	// tokenUser  map[string]userInfo
+	// tokenMutex sync.RWMutex
+	logger *log.Logger
 }
 
 type authMessage struct {
@@ -28,6 +32,7 @@ type authMessage struct {
 }
 
 type authUserRequest struct {
+	UserId   uint   `json:"-"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
@@ -46,6 +51,8 @@ func (server *AuthServer) StartServer() {
 	}
 
 	server.serverVariablesInit()
+
+	server.redisInit()
 	server.databaseInit()
 
 	http.HandleFunc("/login", server.authLogin)
@@ -62,23 +69,22 @@ func (server *AuthServer) StartServer() {
 }
 
 func (server *AuthServer) serverVariablesInit() {
+
+	server.logger = log.Default()
+	server.logger.SetPrefix("[ AUTH ]")
+
 	err := godotenv.Load(".dbenv")
 	if err != nil {
-		log.Fatal("Error loading .env file : ", err)
+		server.logger.Fatal("Error loading .env file : ", err)
 	}
 	secretKey = []byte(os.Getenv("SECRET_KEY"))
 	refreshSecretKey = []byte(os.Getenv("REFRESH_SECRET_KEY"))
 
-	server.tokenUser = make(map[string]userInfo)
-	server.logger = log.Default()
-	server.logger.SetPrefix("[ AUTH ]")
+	server.redisContext, server.redisContextCancel = context.WithCancel(context.Background())
+	// server.tokenUser = make(map[string]userInfo)
 }
 
 func (server *AuthServer) databaseInit() {
-	// err := godotenv.Load(".dbenv")
-	// if err != nil {
-	// 	log.Fatal("Error loading .env file : ", err)
-	// }
 	dsn := os.Getenv("DB_CONFIG")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -89,6 +95,21 @@ func (server *AuthServer) databaseInit() {
 	}
 
 	server.database = db
-
 	server.logger.Print("connected to database")
+}
+
+func (server *AuthServer) redisInit() {
+	server.redisDatabase = redis.NewClient(&redis.Options{
+		Addr:     os.Getenv("REDIS_ADDR"),
+		Password: os.Getenv("REDIS_PASSWORD"),
+		DB:       0,
+	})
+
+	_, err := server.redisDatabase.Ping(context.Background()).Result()
+	if err != nil {
+		server.logger.Fatal("failed connect redis: ", err)
+		return
+	}
+
+	server.logger.Print("connected to redis")
 }

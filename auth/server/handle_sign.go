@@ -30,13 +30,14 @@ func (server *AuthServer) authLogin(responseWriter http.ResponseWriter, request 
 	}
 
 	// authToken := strconv.Itoa(int(user.ID))
+	authUser.UserId = user.ID
 	accessToken, err := server.generateToken(authUser, "access")
 	if len(accessToken) == 0 || err != nil {
 		server.logger.Print("failed generate access token : ", err)
 		http.Error(responseWriter, "failed generate access token", http.StatusInternalServerError)
 		return
 	}
-	server.tokenUser[accessToken] = userInfo{Username: user.Username, UserId: user.ID}
+	// server.tokenUser[accessToken] = userInfo{Username: user.Username, UserId: user.ID}
 
 	refreshToken, err := server.generateToken(authUser, "refresh")
 	if len(refreshToken) == 0 || err != nil {
@@ -46,6 +47,11 @@ func (server *AuthServer) authLogin(responseWriter http.ResponseWriter, request 
 	}
 
 	server.logger.Print("user logged in : ", authUser.Username)
+	currentUser := userInfo{Username: user.Username, UserId: user.ID}
+	userData, _ := json.Marshal(currentUser)
+	server.redisDatabase.Set(server.redisContext, "refresh:"+refreshToken, userData, refreshTTL)
+	server.redisDatabase.Set(server.redisContext, accessToken, userData, accessTTL)
+	server.logger.Print("set refresh:" + refreshToken)
 
 	http.SetCookie(responseWriter, &http.Cookie{
 		Name:     "refresh_token",
@@ -75,15 +81,22 @@ func (server *AuthServer) authLogout(responseWriter http.ResponseWriter, request
 		http.Error(responseWriter, "parse_json_error", http.StatusBadRequest)
 	}
 
-	server.tokenMutex.RLock()
-	if _, ok := server.tokenUser[logoutMessage.AccessToken]; !ok {
-		http.Error(responseWriter, "wrong_token", http.StatusBadRequest)
+	refreshCookie, err := request.Cookie("refresh_token")
+
+	err = server.redisDatabase.Del(server.redisContext, "refresh:"+refreshCookie.Value).Err()
+	if err != nil {
+		server.logger.Print("failed find refresh token for logout")
 	}
 
-	server.tokenMutex.RUnlock()
-	server.tokenMutex.Lock()
-	delete(server.tokenUser, logoutMessage.AccessToken)
-	server.tokenMutex.Unlock()
+	// server.tokenMutex.RLock()
+	// if _, ok := server.tokenUser[logoutMessage.AccessToken]; !ok {
+	// 	http.Error(responseWriter, "wrong_token", http.StatusBadRequest)
+	// }
+
+	// server.tokenMutex.RUnlock()
+	// server.tokenMutex.Lock()
+	// delete(server.tokenUser, logoutMessage.AccessToken)
+	// server.tokenMutex.Unlock()
 
 	responseWriter.WriteHeader(http.StatusOK)
 }

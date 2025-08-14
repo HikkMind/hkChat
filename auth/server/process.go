@@ -9,6 +9,7 @@ import (
 )
 
 type Claims struct {
+	UserID   uint
 	Username string
 	jwt.RegisteredClaims
 }
@@ -40,6 +41,7 @@ func (server *AuthServer) generateToken(currentUser authUserRequest, tokenType s
 	expirationTime := time.Now().Add(tokenTTL)
 	claims := &Claims{
 		Username: currentUser.Username,
+		UserID:   currentUser.UserId,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},
@@ -51,20 +53,13 @@ func (server *AuthServer) generateToken(currentUser authUserRequest, tokenType s
 		return "", err
 	}
 
+	server.logger.Print("genereted new " + tokenType + " token")
+
 	return tokenString, nil
 }
 
-func (server *AuthServer) parseRequestToken(requestToken string) (string, bool) {
-	// if requestToken == "" {
-	// 	return "", false
-	// }
-	// parts := strings.SplitN(requestToken, " ", 2)
-	// if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-	// 	return "", false
-	// }
-	// return parts[1], true
-
-	server.logger.Printf("request token (raw): %q, length: %d", requestToken, len(requestToken))
+func (server *AuthServer) parseAccessRequestToken(requestToken string) (string, bool) {
+	// server.logger.Printf("request token (raw): %q, length: %d", requestToken, len(requestToken))
 	requestToken = strings.TrimSpace(requestToken)
 	if len(requestToken) < 7 || !strings.HasPrefix(requestToken, "Bearer ") {
 		server.logger.Printf("invalid token: prefix=%q, expected 'Bearer '", requestToken[:min(len(requestToken), 7)])
@@ -72,7 +67,7 @@ func (server *AuthServer) parseRequestToken(requestToken string) (string, bool) 
 	}
 
 	token := requestToken[7:]
-	server.logger.Printf("extracted token: %q", token)
+	// server.logger.Printf("extracted token: %q", token)
 	return token, true
 }
 
