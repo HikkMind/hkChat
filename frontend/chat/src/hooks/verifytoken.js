@@ -20,12 +20,12 @@ export const verifyAccessToken = async (setCurrentUser, setPage, routes) => {
     if (response.ok) {
       const data = await response.json();
       if (data.status === "ok") {
-        setCurrentUser({username: username, accessToken: data.accessToken})
+        setCurrentUser({username: username, accessToken: token})
         setPage(routes.chatList);
         return true;
       }
       if (data.status === "refresh") {
-        localStorage.setItem("accessToken", data.accessToken);
+        localStorage.setItem("accessToken", data.access_token);
         setCurrentUser({username: username, accessToken: data.accessToken})
         setPage(routes.chatList);
         return true;
