@@ -36,34 +36,3 @@ export const verifyAccessToken = async (setCurrentUser, setPage, routes) => {
   }
   return false;
 };
-
-// export const verifyToken = async (setCurrentUser, setPage, routes) => {
-//   const token = localStorage.getItem("accessToken");
-//   const username = localStorage.getItem("username");
-
-//   if (!token || !username) return false;
-
-//   try {
-//     const res = await fetch('/verify', {
-//       headers: { 'Authorization': `Bearer ${token}` }
-//     });
-
-//     if (res.ok) {
-//       setCurrentUser({ username, accessToken: token });
-//       setPage(routes.chatList);
-//       return true;
-//     } else if (res.status === 401) {
-//       // пытаемся обновить
-//       const refreshed = await refreshAccessToken();
-//       if (refreshed) {
-//         setCurrentUser({ username, accessToken: localStorage.getItem("accessToken") });
-//         setPage(routes.chatList);
-//         return true;
-//       }
-//     }
-//   } catch (e) {
-//     console.error("Ошибка проверки токена:", e);
-//   }
-
-//   return false;
-// };

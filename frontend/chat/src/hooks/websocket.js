@@ -33,7 +33,7 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
       socket.onmessage = (event) => {
         
         const msg = JSON.parse(event.data);
-        console.log("new socket message : ", msg)
+        // console.log("new socket message : ", msg)
 
         if (msg.intent === 'chat_list') {
           onChatsReceived(msg.chat_list);
@@ -71,6 +71,7 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
 
   useEffect(() => {
     return () => {
+      console.log("close socket")
       if (socketRef.current) {
         socketRef.current.close();
       }
