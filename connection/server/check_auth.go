@@ -1,9 +1,9 @@
 package server
 
 import (
-	"encoding/json"
-	"log"
-	"net/http"
+	"context"
+
+	tokenverify "github.com/hikkmind/hkchat/proto/tokenverify"
 )
 
 type authMessage struct {
@@ -13,37 +13,18 @@ type authMessage struct {
 
 func (server *ChatServer) checkAuthToken(token string) *userInfo {
 
-	// checkMessage := authMessage{
-	// 	Status: "check_auth",
-	// }
-	// requestBody, _ := json.Marshal(checkMessage)
-	// requestBodyReader := bytes.NewBuffer(requestBody)
-
-	authRequest, err := http.NewRequest("GET", "http://auth:8081/checktoken", nil)
+	authResponse, err := server.authTokenClient.VerifyToken(context.Background(), &tokenverify.VerifyTokenRequest{Token: token})
 	if err != nil {
-		server.logger.Print("Create auth request error:", err)
-		return nil
-	}
-	authRequest.Header.Set("Content-Type", "application/json")
-	authRequest.Header.Set("Authorization", "Bearer "+token)
-
-	authClient := http.Client{}
-	authResponse, err := authClient.Do(authRequest)
-	if err != nil {
-		server.logger.Print("Check token error:", err)
+		server.logger.Print("failed send auth token : ", err)
 		return nil
 	}
 
-	if authResponse.StatusCode != http.StatusOK {
-		return nil
+	server.logger.Print("authorized user : ", authResponse.Username)
+
+	return &userInfo{
+		Username: authResponse.Username,
+		UserId:   uint(authResponse.UserId),
+		Token:    token,
 	}
 
-	var user userInfo
-	err = json.NewDecoder(authResponse.Body).Decode(&user)
-	if err != nil {
-		log.Println("Failed read user info:", err)
-		return nil
-	}
-
-	return &user
 }

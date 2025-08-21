@@ -1,10 +1,14 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v5"
+	// tokenverify "github.com/hikkmind/chat-proto"
+	tokenverify "github.com/hikkmind/hkchat/proto/tokenverify"
 )
 
 func (server *AuthServer) authCheckToken(responseWriter http.ResponseWriter, request *http.Request) {
@@ -104,4 +108,28 @@ func (server *AuthServer) verifyAccessToken(responseWriter http.ResponseWriter, 
 	})
 	server.logger.Print("access token updated")
 
+}
+
+func (server *AuthServer) VerifyToken(ctx context.Context, request *tokenverify.VerifyTokenRequest) (*tokenverify.VerifyTokenResponse, error) {
+	accessToken, ok := server.parseAccessRequestToken(request.Token)
+
+	if !ok {
+		// http.Error(responseWriter, "parse auth request error", http.StatusBadRequest)
+		server.logger.Print("parse auth request error (check token)")
+		return nil, errors.New("parse auth request error")
+	}
+
+	var claims Claims
+	parsedAccessToken, err := jwt.ParseWithClaims(accessToken, &claims, checkAccessTokenMethod)
+	if err != nil || !parsedAccessToken.Valid {
+		// http.Error(responseWriter, "invalid auth token", http.StatusUnauthorized)
+		server.redisDatabase.Del(server.redisContext, accessToken)
+		server.logger.Print("invalid access token (check token)")
+		return nil, errors.New("invalid access token (check token)")
+	}
+
+	return &tokenverify.VerifyTokenResponse{
+		Username: claims.Username,
+		UserId:   int64(claims.UserID),
+	}, nil
 }

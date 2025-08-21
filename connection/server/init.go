@@ -9,8 +9,11 @@ import (
 	"os"
 
 	"github.com/hikkmind/hkchat/connection/chat"
+	tokenverify "github.com/hikkmind/hkchat/proto/tokenverify"
 	"github.com/hikkmind/hkchat/tables"
 	"github.com/lpernett/godotenv"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -20,6 +23,8 @@ type ChatServer struct {
 	chatList     map[uint]chan chat.ControlMessage
 	chatListName map[uint]string
 	logger       *log.Logger
+
+	authTokenClient tokenverify.AuthServiceClient
 }
 
 type HandleConnectionMessage struct {
@@ -49,6 +54,7 @@ func (server *ChatServer) StartServer() {
 	server.logger.SetPrefix("[ CONNECTION ]")
 
 	server.databaseInit()
+	server.grpcInit()
 	server.loadChats()
 
 	serverHTTP.ListenAndServe()
@@ -72,6 +78,18 @@ func (server *ChatServer) databaseInit() {
 	server.database = db
 
 	fmt.Println("connected to database")
+}
+
+func (server *ChatServer) grpcInit() {
+	tokenConnection, err := grpc.NewClient("auth:6001", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		server.logger.Print("failed check auth token : ", err)
+		return
+	}
+	// defer tokenConnection.Close()
+
+	server.authTokenClient = tokenverify.NewAuthServiceClient(tokenConnection)
+	server.logger.Print("connected to grpc server")
 }
 
 func (server *ChatServer) loadChats() {

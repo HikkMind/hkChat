@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 
+	tokenverify "github.com/hikkmind/hkchat/proto/tokenverify"
 	"github.com/hikkmind/hkchat/tables"
 	"github.com/lpernett/godotenv"
 	"github.com/redis/go-redis/v9"
@@ -24,6 +25,7 @@ type AuthServer struct {
 	// tokenUser  map[string]userInfo
 	// tokenMutex sync.RWMutex
 	logger *log.Logger
+	tokenverify.UnimplementedAuthServiceServer
 }
 
 type authMessage struct {
@@ -53,13 +55,17 @@ func (server *AuthServer) StartServer() {
 
 	server.serverVariablesInit()
 
+	// grpcConnectionContext, grpcConnectionSignal := context.WithCancel(context.Background())
+	go server.startGrpcServer()
+	// <-grpcConnectionContext.Done()
+
 	server.redisInit()
 	server.databaseInit()
 
 	http.HandleFunc("/login", server.authLogin)
 	http.HandleFunc("/logout", server.authLogout)
 	http.HandleFunc("/register", server.authRegister)
-	http.HandleFunc("/checktoken", server.authCheckToken)
+	// http.HandleFunc("/checktoken", server.authCheckToken)
 	http.HandleFunc("/verifytoken", server.verifyAccessToken)
 
 	server.logger.Print("start server")
