@@ -22,7 +22,7 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
 
         socket.onopen = () => {
           if (currentUser) {
-              socket.send(JSON.stringify({intent: 'auth', token: localStorage.getItem("accessToken")}))
+              socket.send(JSON.stringify({intent: 'auth', token: 'Bearer '+localStorage.getItem("accessToken")}))
           }
         };
       }
