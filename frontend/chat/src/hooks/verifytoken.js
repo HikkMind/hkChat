@@ -1,5 +1,3 @@
-import { useEffect, useRef } from 'react';
-
 export const verifyAccessToken = async (setCurrentUser, setPage, routes) => {
   try {
     const token = localStorage.getItem("accessToken");

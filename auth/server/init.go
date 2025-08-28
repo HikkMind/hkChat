@@ -54,10 +54,7 @@ func (server *AuthServer) StartServer() {
 	}
 
 	server.serverVariablesInit()
-
-	// grpcConnectionContext, grpcConnectionSignal := context.WithCancel(context.Background())
 	go server.startGrpcServer()
-	// <-grpcConnectionContext.Done()
 
 	server.redisInit()
 	server.databaseInit()
@@ -65,7 +62,6 @@ func (server *AuthServer) StartServer() {
 	http.HandleFunc("/login", server.authLogin)
 	http.HandleFunc("/logout", server.authLogout)
 	http.HandleFunc("/register", server.authRegister)
-	// http.HandleFunc("/checktoken", server.authCheckToken)
 	http.HandleFunc("/verifytoken", server.verifyAccessToken)
 
 	server.logger.Print("start server")

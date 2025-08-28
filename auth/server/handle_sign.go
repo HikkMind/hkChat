@@ -30,7 +30,7 @@ func (server *AuthServer) authLogin(responseWriter http.ResponseWriter, request 
 
 	authUser.UserId = user.ID
 
-	accessToken, refreshToken := server.generateTokenLogin(authUser)
+	accessToken, refreshToken := server.generateTokenLogin(authUserRequest{Username: authUser.Username, UserId: authUser.UserId})
 	if len(accessToken) == 0 || len(refreshToken) == 0 {
 		http.Error(responseWriter, "failed generate access/refresh token", http.StatusInternalServerError)
 	}

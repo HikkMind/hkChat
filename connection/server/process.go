@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -48,17 +49,20 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 		messageType, msg, err := connection.ReadMessage()
 
 		if messageType == websocket.CloseMessage || err != nil {
-			if sendingContextCancel != nil {
-				sendingContextCancel()
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+				if sendingContextCancel != nil {
+					sendingContextCancel()
+				}
+				server.logger.Print("websocket close for user : ", currentUser.Username)
+				return
 			}
-			return
 		}
 
 		json.Unmarshal(msg, &message)
 		server.logger.Print("new chat signal : ", message)
 
 		if message.Intent == JoinChat {
-			sendingContextCancel = server.handleUserJoin(connection, uint(message.ChatId), currentUser)
+			sendingContextCancel = server.handleUserJoin(&connection, uint(message.ChatId), currentUser)
 			server.logger.Print("joined user {", currentUser.Username, "}")
 
 		} else if message.Intent == LeaveChat {
@@ -73,7 +77,7 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 	}
 }
 
-func (server *ChatServer) handleUserJoin(websocketConnection *websocket.Conn, chatId uint, currentUser *userInfo) context.CancelFunc {
+func (server *ChatServer) handleUserJoin(websocketConnection **websocket.Conn, chatId uint, currentUser *userInfo) context.CancelFunc {
 	chatContext, chatContextCancel := context.WithCancel(context.Background())
 	outputChannel := make(chan structs.Message)
 	chatChannel, ok := server.chatList[chatId]
@@ -115,7 +119,7 @@ func (server *ChatServer) handleUserSendMessage(userMessage HandleConnectionMess
 		}
 		return true
 	} else {
-		server.logger.Print("wrong join chat_id")
+		server.logger.Print("wrong join chat_id : ", userMessage.ChatId)
 	}
 	return false
 }
@@ -139,14 +143,14 @@ func (server *ChatServer) handleUserGetChats(websocketConnection *websocket.Conn
 	websocketConnection.WriteJSON(answer)
 }
 
-func (server *ChatServer) handleConnectionMessageSending(ctx context.Context, connection *websocket.Conn, outputChannel <-chan structs.Message) {
+func (server *ChatServer) handleConnectionMessageSending(ctx context.Context, connection **websocket.Conn, outputChannel <-chan structs.Message) {
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case message := <-outputChannel:
-			err := connection.WriteJSON(ChatMessage{
+			err := (*connection).WriteJSON(ChatMessage{
 				Intent:  "send_message",
 				Sender:  message.Sender,
 				Message: message.Message,
@@ -157,4 +161,23 @@ func (server *ChatServer) handleConnectionMessageSending(ctx context.Context, co
 			}
 		}
 	}
+}
+
+func (server *ChatServer) newWebsocketConnection(responseWriter http.ResponseWriter, request *http.Request) (*userInfo, *websocket.Conn) {
+	websocketUpgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+
+	server.logger.Print("try connect websocket")
+
+	websocketConnection, err := websocketUpgrader.Upgrade(responseWriter, request, nil)
+	if err != nil {
+		server.logger.Print("failed upgrade websocket : ", err)
+		return nil, nil
+	}
+	server.logger.Print("connected new websocket")
+
+	return server.verifyUserToken(websocketConnection), websocketConnection
 }

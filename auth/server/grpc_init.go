@@ -11,7 +11,6 @@ import (
 )
 
 func (server *AuthServer) startGrpcServer() {
-	// defer finalizeSettingSignal()
 
 	grpcServer := grpc.NewServer()
 	tokenverify.RegisterAuthServiceServer(grpcServer, server)
@@ -27,7 +26,6 @@ func (server *AuthServer) startGrpcServer() {
 	}
 
 	server.logger.Print("create grpc connection")
-	// finalizeSettingSignal()
 
 	if err := grpcServer.Serve(listener); err != nil {
 		server.logger.Fatal("failed start listen port : ", err)

@@ -65,5 +65,7 @@ func (server *ChatServer) verifyUserToken(websocketConnection *websocket.Conn) *
 		Token:  connMessage.Token,
 	})
 
+	server.logger.Print("verified new user : ", currentUser)
+
 	return currentUser
 }

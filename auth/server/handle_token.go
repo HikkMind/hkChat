@@ -35,7 +35,7 @@ func (server *AuthServer) authCheckToken(responseWriter http.ResponseWriter, req
 
 	user := userInfo{
 		Username: claims.Username,
-		UserId:   claims.UserID,
+		UserId:   claims.UserId,
 	}
 
 	responseWriter.WriteHeader(http.StatusOK)
@@ -86,7 +86,6 @@ func (server *AuthServer) verifyAccessToken(responseWriter http.ResponseWriter, 
 	server.logger.Print("get refresh token from redis")
 
 	if exists == 0 {
-		// http.Error(responseWriter, "refresh token expired or revoked", http.StatusUnauthorized)
 		responseWriter.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(responseWriter).Encode(authMessage{
 			Status: "unauthorized",
@@ -95,7 +94,7 @@ func (server *AuthServer) verifyAccessToken(responseWriter http.ResponseWriter, 
 		return
 	}
 
-	accessToken, err := server.generateToken(authUserRequest{Username: refreshClaims.Username}, "access")
+	accessToken, err := server.generateToken(authUserRequest{Username: refreshClaims.Username, UserId: refreshClaims.UserId}, "access")
 	if err != nil {
 		http.Error(responseWriter, "failed to create new access token", http.StatusInternalServerError)
 		return
@@ -114,7 +113,6 @@ func (server *AuthServer) VerifyToken(ctx context.Context, request *tokenverify.
 	accessToken, ok := server.parseAccessRequestToken(request.Token)
 
 	if !ok {
-		// http.Error(responseWriter, "parse auth request error", http.StatusBadRequest)
 		server.logger.Print("parse auth request error (check token)")
 		return nil, errors.New("parse auth request error")
 	}
@@ -122,7 +120,6 @@ func (server *AuthServer) VerifyToken(ctx context.Context, request *tokenverify.
 	var claims Claims
 	parsedAccessToken, err := jwt.ParseWithClaims(accessToken, &claims, checkAccessTokenMethod)
 	if err != nil || !parsedAccessToken.Valid {
-		// http.Error(responseWriter, "invalid auth token", http.StatusUnauthorized)
 		server.redisDatabase.Del(server.redisContext, accessToken)
 		server.logger.Print("invalid access token (check token)")
 		return nil, errors.New("invalid access token (check token)")
@@ -130,6 +127,6 @@ func (server *AuthServer) VerifyToken(ctx context.Context, request *tokenverify.
 
 	return &tokenverify.VerifyTokenResponse{
 		Username: claims.Username,
-		UserId:   int64(claims.UserID),
+		UserId:   int64(claims.UserId),
 	}, nil
 }

@@ -11,7 +11,7 @@ import (
 )
 
 type Claims struct {
-	UserID   uint
+	UserId   uint
 	Username string
 	jwt.RegisteredClaims
 }
@@ -44,7 +44,7 @@ func (server *AuthServer) generateToken(currentUser authUserRequest, tokenType s
 	expirationTime := time.Now().Add(tokenTTL)
 	claims := &Claims{
 		Username: currentUser.Username,
-		UserID:   currentUser.UserId,
+		UserId:   currentUser.UserId,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},

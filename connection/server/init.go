@@ -86,8 +86,6 @@ func (server *ChatServer) grpcInit() {
 		server.logger.Print("failed check auth token : ", err)
 		return
 	}
-	// defer tokenConnection.Close()
-
 	server.authTokenClient = tokenverify.NewAuthServiceClient(tokenConnection)
 	server.logger.Print("connected to grpc server")
 }
