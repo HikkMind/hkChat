@@ -105,7 +105,9 @@ function App() {
     setCurrentUser(null);
     setMessages([]);
     setPage(routes.login);
-    socketRef.current = null
+    socketRef.current = null;
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('username');
   };
 
 
