@@ -57,6 +57,8 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 				server.logger.Print("websocket close for user : ", currentUser.Username)
 				return
 			}
+			server.logger.Print("websocket close by error code : ", websocket.CloseMessage)
+			return
 		}
 
 		json.Unmarshal(msg, &message)
