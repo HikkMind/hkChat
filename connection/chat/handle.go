@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/hikkmind/hkchat/tables"
+	"hkchat/tables"
+
 	"gorm.io/gorm"
 )
 

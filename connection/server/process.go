@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	"connection-service/chat"
+	"hkchat/structs"
+
 	"github.com/gorilla/websocket"
-	"github.com/hikkmind/hkchat/connection/chat"
-	"github.com/hikkmind/hkchat/structs"
 )
 
 type ChatInfo struct {

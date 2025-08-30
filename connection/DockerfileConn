@@ -2,16 +2,16 @@ FROM golang:alpine AS builder
 
 WORKDIR /app
 
-COPY ./go.mod ./go.sum ./
-COPY ./structs ./structs
+# COPY ./go.mod ./go.sum ./
+COPY ./shared/structs ./shared/structs
 COPY ./connection ./connection
 COPY ./.dbenv ./connection
-COPY ./tables ./tables
-COPY ./proto ./proto
-RUN go mod download
+COPY ./shared/tables ./shared/tables
+COPY ./shared/proto ./shared/proto
 
 WORKDIR /app/connection
 
+RUN go mod download
 RUN go build -o connection
 
 FROM alpine:3

@@ -8,8 +8,10 @@ import (
 	"os"
 	"strconv"
 
-	tokenverify "github.com/hikkmind/hkchat/proto/tokenverify"
-	"github.com/hikkmind/hkchat/tables"
+	tables "hkchat/tables"
+
+	tokenverify "hkchat/proto/tokenverify"
+
 	"github.com/lpernett/godotenv"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"

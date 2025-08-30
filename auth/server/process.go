@@ -5,8 +5,9 @@ import (
 	"strings"
 	"time"
 
+	"hkchat/tables"
+
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/hikkmind/hkchat/tables"
 	"gorm.io/gorm"
 )
 

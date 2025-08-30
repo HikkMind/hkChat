@@ -6,7 +6,8 @@ import (
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 
-	tokenverify "github.com/hikkmind/hkchat/proto/tokenverify"
+	tokenverify "hkchat/proto/tokenverify"
+
 	"google.golang.org/grpc"
 )
 

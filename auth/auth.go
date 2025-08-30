@@ -1,6 +1,6 @@
 package main
 
-import "github.com/hikkmind/hkchat/auth/server"
+import "auth-service/server"
 
 func main() {
 

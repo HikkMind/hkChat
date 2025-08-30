@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/hikkmind/hkchat/connection/server"
+	"connection-service/server"
 )
 
 func main() {

@@ -8,9 +8,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/hikkmind/hkchat/connection/chat"
+	"connection-service/chat"
+	"hkchat/tables"
+
 	tokenverify "github.com/hikkmind/hkchat/proto/tokenverify"
-	"github.com/hikkmind/hkchat/tables"
 	"github.com/lpernett/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

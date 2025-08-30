@@ -8,7 +8,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	// tokenverify "github.com/hikkmind/chat-proto"
-	tokenverify "github.com/hikkmind/hkchat/proto/tokenverify"
+	tokenverify "hkchat/proto/tokenverify"
 )
 
 func (server *AuthServer) authCheckToken(responseWriter http.ResponseWriter, request *http.Request) {

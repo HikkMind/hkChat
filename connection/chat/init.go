@@ -4,8 +4,9 @@ import (
 	"log"
 	"sync"
 
-	"github.com/hikkmind/hkchat/structs"
-	"github.com/hikkmind/hkchat/tables"
+	"hkchat/structs"
+	"hkchat/tables"
+
 	"gorm.io/gorm"
 )
 

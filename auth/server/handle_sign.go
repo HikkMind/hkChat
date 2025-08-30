@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/hikkmind/hkchat/tables"
+	"hkchat/tables"
 )
 
 var (
