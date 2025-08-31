@@ -1,14 +1,15 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"time"
 
+	authstream "hkchat/proto/datastream/auth"
 	"hkchat/tables"
 
 	"github.com/golang-jwt/jwt/v5"
-	"gorm.io/gorm"
 )
 
 type Claims struct {
@@ -63,16 +64,28 @@ func (server *AuthServer) generateToken(currentUser authUserRequest, tokenType s
 }
 
 func (server *AuthServer) getUserInfo(authUser authUserRequest, user *tables.User) bool {
-	result := server.database.Where("username = ? AND password = ?", authUser.Username, authUser.Password).First(&user)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		server.logger.Print("wrong login or password")
-		// responseWriter.WriteHeader(http.StatusConflict)
-		return false
-	} else if result.Error != nil {
-		server.logger.Print("request error : ", result.Error.Error())
+	// result := server.database.Where("username = ? AND password = ?", authUser.Username, authUser.Password).First(&user)
+	// if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	// 	server.logger.Print("wrong login or password")
+	// 	// responseWriter.WriteHeader(http.StatusConflict)
+	// 	return false
+	// } else if result.Error != nil {
+	// 	server.logger.Print("request error : ", result.Error.Error())
+	// 	return false
+	// }
+	// return true
+	authResult, err := server.databaseClient.VerifyUserPassword(context.Background(), &authstream.UserDataRequest{
+		Username: authUser.Username,
+		Password: authUser.Password,
+	})
+	if err != nil {
+		server.logger.Print("request error : ", err)
 		return false
 	}
-	return true
+	if !authResult.Status {
+		server.logger.Print("wrong login or password")
+	}
+	return authResult.Status
 }
 
 func (server *AuthServer) generateTokenLogin(authUser authUserRequest) (string, string) {

@@ -1,10 +1,12 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
 
+	authstream "hkchat/proto/datastream/auth"
 	"hkchat/tables"
 )
 
@@ -87,9 +89,13 @@ func (server *AuthServer) authRegister(responseWriter http.ResponseWriter, reque
 		server.logger.Print("(REGISTER) empty login or password")
 	}
 
-	result := server.database.Create(&tables.User{Username: authUser.Username, Password: authUser.Password})
-	if result.Error != nil {
-		server.logger.Print("failed register new user : ", result.Error.Error())
+	// result := server.database.Create(&tables.User{Username: authUser.Username, Password: authUser.Password})
+	_, err = server.databaseClient.RegisterNewUser(context.Background(), &authstream.UserDataRequest{
+		Username: authUser.Username,
+		Password: authUser.Password,
+	})
+	if err != nil {
+		server.logger.Print("failed register new user : ", err)
 		responseWriter.WriteHeader(http.StatusInternalServerError)
 		return
 	}

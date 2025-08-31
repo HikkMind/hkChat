@@ -1,26 +1,23 @@
 package server
 
 import (
+	authstream "hkchat/proto/datastream/auth"
 	"net"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
-
-	tokenverify "hkchat/proto/tokenverify"
-
-	"google.golang.org/grpc"
 )
 
-func (server *AuthServer) startGrpcServer() {
-
+func (server *DatabaseServer) startGrpcServer() {
 	grpcServer := grpc.NewServer()
-	tokenverify.RegisterAuthServiceServer(grpcServer, server)
+	authstream.RegisterUserDataServiceServer(grpcServer, server)
 
 	healthServer := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
 	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
 
-	listener, err := net.Listen("tcp", ":6001")
+	listener, err := net.Listen("tcp", ":6002")
 	if err != nil {
 		server.logger.Fatal("failed open grpc network : ", err)
 		return

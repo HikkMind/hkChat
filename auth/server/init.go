@@ -8,26 +8,27 @@ import (
 	"os"
 	"strconv"
 
-	tables "hkchat/tables"
-
+	authstream "hkchat/proto/datastream/auth"
 	tokenverify "hkchat/proto/tokenverify"
 
 	"github.com/lpernett/godotenv"
 	"github.com/redis/go-redis/v9"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type AuthServer struct {
-	database           *gorm.DB
+	// database           *gorm.DB
 	redisDatabase      *redis.Client
 	redisContext       context.Context
 	redisContextCancel context.CancelFunc
 
 	// tokenUser  map[string]userInfo
 	// tokenMutex sync.RWMutex
-	logger *log.Logger
+	logger         *log.Logger
+	databaseClient authstream.UserDataServiceClient
 	tokenverify.UnimplementedAuthServiceServer
+	// authstream.UserDataServiceClient
 }
 
 type authMessage struct {
@@ -95,17 +96,23 @@ func (server *AuthServer) serverVariablesInit() {
 }
 
 func (server *AuthServer) databaseInit() {
-	dsn := os.Getenv("DB_CONFIG")
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	// dsn := os.Getenv("DB_CONFIG")
+	// db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	// if err != nil {
+	// 	log.Fatal("failed to connect:", err)
+	// }
+	// if err := db.AutoMigrate(&tables.User{}, &tables.Chat{}, &tables.Message{}); err != nil {
+	// 	log.Fatal("migration failed:", err)
+	// }
+	// server.database = db
+	// server.logger.Print("connected to database")
+	tokenConnection, err := grpc.NewClient("database:6002", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatal("failed to connect:", err)
+		server.logger.Print("failed check auth token : ", err)
+		return
 	}
-	if err := db.AutoMigrate(&tables.User{}, &tables.Chat{}, &tables.Message{}); err != nil {
-		log.Fatal("migration failed:", err)
-	}
-
-	server.database = db
-	server.logger.Print("connected to database")
+	server.databaseClient = authstream.NewUserDataServiceClient(tokenConnection)
+	server.logger.Print("connected to grpc server")
 }
 
 func (server *AuthServer) redisInit() {
