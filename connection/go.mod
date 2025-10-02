@@ -4,10 +4,9 @@ go 1.24.6
 
 require (
 	github.com/gorilla/websocket v1.5.3
-	// github.com/hikkmind/hkchat v0.0.0-20250828083838-bd444f2f8e06
-	github.com/lpernett/godotenv v0.0.0-20230527005122-0de1d4c5ef5e
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.2
+	hkchat/proto/datastream v0.0.0
 	hkchat/structs v0.0.0
 	hkchat/tables v0.0.0
 )
@@ -42,6 +41,7 @@ require (
 )
 
 replace (
+	hkchat/proto/datastream => ../shared/proto/datastream
 	hkchat/proto/tokenverify => ../shared/proto/tokenverify
 	hkchat/structs => ../shared/structs
 	hkchat/tables => ../shared/tables

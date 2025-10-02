@@ -20,7 +20,7 @@ func (server *AuthServer) startGrpcServer() {
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
 	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
 
-	listener, err := net.Listen("tcp", ":6001")
+	listener, err := net.Listen("tcp", server.grpcPort)
 	if err != nil {
 		server.logger.Fatal("failed open grpc network : ", err)
 		return
@@ -29,7 +29,7 @@ func (server *AuthServer) startGrpcServer() {
 	server.logger.Print("create grpc connection")
 
 	if err := grpcServer.Serve(listener); err != nil {
-		server.logger.Fatal("failed start listen port : ", err)
+		server.logger.Fatal("failed start listen port "+server.grpcPort+" : ", err)
 	}
 
 	server.logger.Print("close grpc server connection")

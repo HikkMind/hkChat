@@ -12,7 +12,20 @@ message UserDataResponse {
     bool status = 1;
 }
 
+message UserRefreshTokenRequest {
+    string refresh_token = 1;
+}
+
+message UserRefreshTokenResponse {
+    bool status = 1;
+}
+
+
 service UserDataService {
     rpc VerifyUserPassword(UserDataRequest) returns (UserDataResponse);
     rpc RegisterNewUser(UserDataRequest) returns (UserDataResponse);
+
+    rpc SetRefreshToken(UserRefreshTokenRequest) returns (UserRefreshTokenResponse);
+    rpc FindRefreshToken(UserRefreshTokenRequest) returns (UserRefreshTokenResponse);
+    rpc UnsetRefreshToken(UserRefreshTokenRequest) returns (UserRefreshTokenResponse);
 }

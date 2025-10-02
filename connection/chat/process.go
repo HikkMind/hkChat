@@ -3,6 +3,7 @@ package chat
 import (
 	"context"
 
+	chatstream "hkchat/proto/datastream/chat"
 	"hkchat/structs"
 	"hkchat/tables"
 )
@@ -22,9 +23,16 @@ func (chat *Chat) handleInputMessages(chatContext context.Context) {
 
 func (chat *Chat) processNewMessage(message *tables.Message) {
 
-	result := chat.database.
-		Table("messages").
-		Create(message)
+	// result := chat.database.
+	// 	Table("messages").
+	// 	Create(message)
+	chat.databaseClient.ProcessMessage(context.Background(), &chatstream.MessageTable{
+		SenderID:       uint32(message.SenderID),
+		SenderUsername: message.SenderUsername,
+		ChatID:         uint32(message.ChatID),
+		Message:        message.Message,
+		Time:           message.CreatedAt,
+	})
 
 	if result.Error != nil {
 		chat.logger.Print("create chat message error for chat ", chat.chatId, ": ", message)

@@ -1,0 +1,21 @@
+FROM golang:alpine AS builder
+
+WORKDIR /app
+
+COPY ./shared/tables ./shared/tables
+COPY ./datagate ./datagate
+COPY ./shared/proto ./shared/proto
+
+WORKDIR /app/datagate
+
+RUN go mod download
+RUN go build -o connection
+
+FROM alpine:3
+COPY --from=builder /app/datagate/datagate /bin/datagate
+COPY --from=builder /app/datagate/.dbenv /bin/.dbenv
+EXPOSE 6002
+
+WORKDIR /bin
+
+ENTRYPOINT ["./datagate"]

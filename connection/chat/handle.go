@@ -11,7 +11,7 @@ import (
 
 func HandleChat(signalChannel <-chan ControlMessage, chatId uint, database *gorm.DB) {
 
-	currentChat := newChat(chatId, database)
+	currentChat := newChat(chatId)
 	if currentChat == nil {
 		return
 	}

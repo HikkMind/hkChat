@@ -12,7 +12,6 @@ import (
 	"hkchat/tables"
 
 	tokenverify "github.com/hikkmind/hkchat/proto/tokenverify"
-	"github.com/lpernett/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"gorm.io/driver/postgres"
@@ -25,7 +24,10 @@ type ChatServer struct {
 	chatListName map[uint]string
 	logger       *log.Logger
 
+	serverPort string
+
 	authTokenClient tokenverify.AuthServiceClient
+	// messageDatabaseClient
 }
 
 type HandleConnectionMessage struct {
@@ -43,6 +45,7 @@ type userInfo struct {
 }
 
 func (server *ChatServer) StartServer() {
+	server.serverVariablesInit()
 	serverHTTP := &http.Server{
 		Addr: ":8080",
 		ConnContext: func(ctx context.Context, connection net.Conn) context.Context {
@@ -51,8 +54,6 @@ func (server *ChatServer) StartServer() {
 	}
 
 	http.HandleFunc("/chatlist", server.connectUser)
-	server.logger = log.Default()
-	server.logger.SetPrefix("[ CONNECTION ]")
 
 	server.databaseInit()
 	server.grpcInit()
@@ -63,10 +64,6 @@ func (server *ChatServer) StartServer() {
 }
 
 func (server *ChatServer) databaseInit() {
-	err := godotenv.Load(".dbenv")
-	if err != nil {
-		log.Fatal("Error loading .env file : ", err)
-	}
 	dsn := os.Getenv("DB_CONFIG")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -106,4 +103,12 @@ func (server *ChatServer) loadChats() {
 
 		go chat.HandleChat(chatChannel, currentChat.ID, server.database)
 	}
+}
+
+func (server *ChatServer) serverVariablesInit() {
+
+	server.serverPort = ":" + os.Getenv("CONN_PORT")
+
+	server.logger = log.Default()
+	server.logger.SetPrefix("[ CONNECTION ]")
 }

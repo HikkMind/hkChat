@@ -32,3 +32,27 @@ func (server *DatabaseServer) RegisterNewUser(ctx context.Context, request *auth
 	result := server.databaseConnection.Create(&tables.User{Username: request.Username, Password: request.Password})
 	return nil, result.Error
 }
+
+func (server *DatabaseServer) SetRefreshToken(ctx context.Context, request *authstream.UserRefreshTokenRequest) (*authstream.UserRefreshTokenResponse, error) {
+	err := server.redisConnection.Set(server.redisContext, request.RefreshToken, "", server.refreshTTL).Err()
+	return nil, err
+}
+
+func (server *DatabaseServer) UnsetRefreshToken(ctx context.Context, request *authstream.UserRefreshTokenRequest) (*authstream.UserRefreshTokenResponse, error) {
+	err := server.redisConnection.Del(server.redisContext, request.RefreshToken).Err()
+	return nil, err
+}
+
+func (server *DatabaseServer) FindRefreshToken(ctx context.Context, request *authstream.UserRefreshTokenRequest) (*authstream.UserRefreshTokenResponse, error) {
+	exists, err := server.redisConnection.Exists(server.redisContext, request.RefreshToken).Result()
+
+	if err != nil || exists == 0 {
+		return &authstream.UserRefreshTokenResponse{
+			Status: false,
+		}, err
+	}
+
+	return &authstream.UserRefreshTokenResponse{
+		Status: true,
+	}, nil
+}

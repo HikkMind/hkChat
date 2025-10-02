@@ -38,7 +38,10 @@ func (server *AuthServer) authLogin(responseWriter http.ResponseWriter, request 
 	}
 
 	server.logger.Print("user logged in : ", authUser.Username)
-	server.redisDatabase.Set(server.redisContext, "refresh:"+refreshToken, "", refreshTTL)
+	// server.redisDatabase.Set(server.redisContext, "refresh:"+refreshToken, "", refreshTTL)
+	server.databaseClient.SetRefreshToken(context.Background(), &authstream.UserRefreshTokenRequest{
+		RefreshToken: "refresh:" + refreshToken,
+	})
 
 	http.SetCookie(responseWriter, &http.Cookie{
 		Name:     "refresh_token",
@@ -70,7 +73,10 @@ func (server *AuthServer) authLogout(responseWriter http.ResponseWriter, request
 
 	refreshCookie, _ := request.Cookie("refresh_token")
 
-	server.redisDatabase.Del(server.redisContext, "refresh:"+refreshCookie.Value).Err()
+	// server.redisDatabase.Del(server.redisContext, "refresh:"+refreshCookie.Value).Err()
+	server.databaseClient.UnsetRefreshToken(context.Background(), &authstream.UserRefreshTokenRequest{
+		RefreshToken: "refresh:" + refreshCookie.Value,
+	})
 
 	responseWriter.WriteHeader(http.StatusOK)
 }

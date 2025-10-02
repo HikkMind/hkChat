@@ -2,12 +2,16 @@ package chat
 
 import (
 	"log"
+	"os"
 	"sync"
 
 	"hkchat/structs"
 	"hkchat/tables"
 
-	"gorm.io/gorm"
+	chatstream "hkchat/proto/datastream/chat"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type ChatSignal int
@@ -48,21 +52,25 @@ type Chat struct {
 	userMutex    sync.RWMutex
 	messageMutex sync.RWMutex
 
-	chatId   uint
-	database *gorm.DB
-	logger   *log.Logger
+	chatId uint
+	// database *gorm.DB
+	logger *log.Logger
+
+	datagatePort   string
+	databaseClient chatstream.ChatServiceClient
 }
 
-func newChat(chatId uint, database *gorm.DB) *Chat {
+func newChat(chatId uint) *Chat {
 
 	var self Chat
 	self.userChannelList = make(map[int]chan structs.Message)
 	self.messageChannel = make(chan tables.Message)
 	self.messages = make([]structs.Message, 0)
 	self.chatId = chatId
-	self.database = database
+	// self.database = database
 	self.logger = log.Default()
 	self.logger.SetPrefix("[ CHAT ]")
+	self.databaseInit()
 
 	err := self.loadChatHistory()
 	if err != nil {
@@ -89,4 +97,26 @@ func (currentChat *Chat) loadChatHistory() error {
 	}
 
 	return result.Error
+}
+
+// func (currentChat *Chat) databaseInit() {
+// 	_, err := grpc.NewClient("datagate"+datagatePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+// 	if err != nil {
+// 		server.logger.Print("failed check auth token : ", err)
+// 		return
+// 	}
+// 	server.databaseClient = authstream.NewUserDataServiceClient(tokenConnection)
+// 	server.logger.Print("connected to grpc server")
+// }
+
+func (currentChat *Chat) datagateGrpcConnectionInit() {
+	datagatePort := ":" + os.Getenv("DATAGATE_GRPC_PORT")
+
+	dataConnection, err := grpc.NewClient("datagate"+datagatePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		currentChat.logger.Print("failed connect to datagate : ", err)
+		return
+	}
+	currentChat.databaseClient = chatstream.NewChatServiceClient(dataConnection)
+	currentChat.logger.Print("connected to grpc server")
 }

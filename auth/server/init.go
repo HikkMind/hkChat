@@ -6,28 +6,25 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 
 	authstream "hkchat/proto/datastream/auth"
 	tokenverify "hkchat/proto/tokenverify"
 
-	"github.com/lpernett/godotenv"
-	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 type AuthServer struct {
 	// database           *gorm.DB
-	redisDatabase      *redis.Client
-	redisContext       context.Context
-	redisContextCancel context.CancelFunc
 
 	// tokenUser  map[string]userInfo
 	// tokenMutex sync.RWMutex
 	logger         *log.Logger
 	databaseClient authstream.UserDataServiceClient
 	tokenverify.UnimplementedAuthServiceServer
+
+	serverPort string
+	grpcPort   string
 	// authstream.UserDataServiceClient
 }
 
@@ -49,17 +46,18 @@ type userInfo struct {
 }
 
 func (server *AuthServer) StartServer() {
+	server.serverVariablesInit()
+
 	serverAuth := &http.Server{
-		Addr: ":8081",
+		Addr: server.serverPort,
 		ConnContext: func(ctx context.Context, connection net.Conn) context.Context {
 			return context.WithValue(ctx, "connection", connection)
 		},
 	}
 
-	server.serverVariablesInit()
 	go server.startGrpcServer()
 
-	server.redisInit()
+	// server.redisInit()
 	server.databaseInit()
 
 	http.HandleFunc("/login", server.authLogin)
@@ -76,23 +74,21 @@ func (server *AuthServer) StartServer() {
 
 func (server *AuthServer) serverVariablesInit() {
 
+	server.serverPort = ":" + os.Getenv("AUTH_PORT")
+	server.grpcPort = ":" + os.Getenv("AUTH_GRPC_PORT")
+
 	server.logger = log.Default()
 	server.logger.SetPrefix("[ AUTH ]")
-
-	err := godotenv.Load(".dbenv")
-	if err != nil {
-		server.logger.Fatal("Error loading .env file : ", err)
-	}
 	secretKey = []byte(os.Getenv("SECRET_KEY"))
 	refreshSecretKey = []byte(os.Getenv("REFRESH_SECRET_KEY"))
 
-	usernameMinLength, err = strconv.Atoi(os.Getenv("USERNAME_LENGTH"))
-	passwordMinLength, err = strconv.Atoi(os.Getenv("PASSWORD_LENGTH"))
-	if err != nil {
-		server.logger.Fatal("error get user settings from environment : ", err)
-	}
+	// usernameMinLength, err := strconv.Atoi(os.Getenv("USERNAME_LENGTH"))
+	// passwordMinLength, err = strconv.Atoi(os.Getenv("PASSWORD_LENGTH"))
+	// if err != nil {
+	// 	server.logger.Fatal("error get user settings from environment : ", err)
+	// }
 
-	server.redisContext, server.redisContextCancel = context.WithCancel(context.Background())
+	// server.redisContext, server.redisContextCancel = context.WithCancel(context.Background())
 }
 
 func (server *AuthServer) databaseInit() {
@@ -106,27 +102,14 @@ func (server *AuthServer) databaseInit() {
 	// }
 	// server.database = db
 	// server.logger.Print("connected to database")
-	tokenConnection, err := grpc.NewClient("database:6002", grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	datagatePort := ":" + os.Getenv("DATAGATE_GRPC_PORT")
+
+	dataConnection, err := grpc.NewClient("datagate"+datagatePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		server.logger.Print("failed check auth token : ", err)
+		server.logger.Print("failed connect to datagate : ", err)
 		return
 	}
-	server.databaseClient = authstream.NewUserDataServiceClient(tokenConnection)
+	server.databaseClient = authstream.NewUserDataServiceClient(dataConnection)
 	server.logger.Print("connected to grpc server")
-}
-
-func (server *AuthServer) redisInit() {
-	server.redisDatabase = redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("REDIS_ADDR"),
-		Password: os.Getenv("REDIS_PASSWORD"),
-		DB:       0,
-	})
-
-	_, err := server.redisDatabase.Ping(context.Background()).Result()
-	if err != nil {
-		server.logger.Fatal("failed connect redis: ", err)
-		return
-	}
-
-	server.logger.Print("connected to redis")
 }
