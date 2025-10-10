@@ -6,6 +6,8 @@ import (
 	chatstream "hkchat/proto/datastream/chat"
 	"hkchat/structs"
 	"hkchat/tables"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (chat *Chat) handleInputMessages(chatContext context.Context) {
@@ -26,15 +28,15 @@ func (chat *Chat) processNewMessage(message *tables.Message) {
 	// result := chat.database.
 	// 	Table("messages").
 	// 	Create(message)
-	chat.databaseClient.ProcessMessage(context.Background(), &chatstream.MessageTable{
+	_, err := chat.databaseClient.ProcessMessage(context.Background(), &chatstream.MessageTable{
 		SenderID:       uint32(message.SenderID),
 		SenderUsername: message.SenderUsername,
 		ChatID:         uint32(message.ChatID),
 		Message:        message.Message,
-		Time:           message.CreatedAt,
+		Time:           timestamppb.New(message.CreatedAt),
 	})
 
-	if result.Error != nil {
+	if err != nil {
 		chat.logger.Print("create chat message error for chat ", chat.chatId, ": ", message)
 		return
 	}
@@ -46,12 +48,14 @@ func (chat *Chat) processNewMessage(message *tables.Message) {
 		Time:    message.CreatedAt,
 	}
 
-	chat.userMutex.RLock()
+	// chat.userMutex.RLock()
+	chat.messageMutex.RLock()
 	chat.messages = append(chat.messages, userMessage)
 	for _, userChannel := range chat.userChannelList {
 		userChannel <- userMessage
 	}
-	chat.userMutex.RUnlock()
+	// chat.userMutex.RUnlock()
+	chat.messageMutex.RUnlock()
 	chat.logger.Print("send new message to users")
 
 }

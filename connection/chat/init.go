@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"context"
 	"log"
 	"os"
 	"sync"
@@ -70,7 +71,8 @@ func newChat(chatId uint) *Chat {
 	// self.database = database
 	self.logger = log.Default()
 	self.logger.SetPrefix("[ CHAT ]")
-	self.databaseInit()
+	// self.databaseInit()
+	self.datagateGrpcConnectionInit()
 
 	err := self.loadChatHistory()
 	if err != nil {
@@ -83,20 +85,37 @@ func newChat(chatId uint) *Chat {
 }
 
 func (currentChat *Chat) loadChatHistory() error {
-	result := currentChat.database.
-		Table("messages").
-		Select("messages.*, users.username").
-		Joins("JOIN users ON users.id = messages.sender_id").
-		Where("messages.chat_id = ?", currentChat.chatId).
-		Order("messages.created_at ASC").
-		Find(&currentChat.messages)
+	// result := currentChat.database.
+	// 	Table("messages").
+	// 	Select("messages.*, users.username").
+	// 	Joins("JOIN users ON users.id = messages.sender_id").
+	// 	Where("messages.chat_id = ?", currentChat.chatId).
+	// 	Order("messages.created_at ASC").
+	// 	Find(&currentChat.messages)
+
+	chatHistory, err := currentChat.databaseClient.LoadChatHistory(context.Background(), &chatstream.ChatHistoryRequest{
+		ChatId: int32(currentChat.chatId),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	currentChat.messages = make([]structs.Message, len(chatHistory.History))
+	for i := range len(chatHistory.History) {
+		currentChat.messages[i] = structs.Message{
+			Sender:  chatHistory.History[i].Sender,
+			Message: chatHistory.History[i].Message,
+			Time:    chatHistory.History[i].Time.AsTime(),
+		}
+	}
 
 	currentChat.logger.Print("got chat history of len : ", len(currentChat.messages))
 	if len(currentChat.messages) > 0 {
 		currentChat.logger.Print("first history message : ", currentChat.messages[0])
 	}
 
-	return result.Error
+	return err
 }
 
 // func (currentChat *Chat) databaseInit() {

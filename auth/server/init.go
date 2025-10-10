@@ -65,7 +65,7 @@ func (server *AuthServer) StartServer() {
 	http.HandleFunc("/register", server.authRegister)
 	http.HandleFunc("/verifytoken", server.verifyAccessToken)
 
-	server.logger.Print("start server")
+	server.logger.Print("start server on port ", server.serverPort)
 	err := serverAuth.ListenAndServe()
 	if err != nil {
 		server.logger.Fatal("failed to start server")

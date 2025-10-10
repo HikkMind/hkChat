@@ -24,10 +24,18 @@ func (server *DatabaseServer) LoadChatHistory(ctx context.Context, request *chat
 
 func (server *DatabaseServer) ProcessMessage(ctx context.Context, request *chatstream.MessageTable) (*chatstream.OperationStatus, error) {
 
-	tables.Message
+	// tables.Message
 
 	result := server.databaseConnection.
 		Table("messages").
-		Create(message)
-	return nil, nil
+		Create(tables.Message{
+			SenderID:       uint(request.SenderID),
+			SenderUsername: request.SenderUsername,
+			ChatID:         uint(request.ChatID),
+			Message:        request.Message,
+		})
+
+	opStatus := &chatstream.OperationStatus{Status: result.Error == nil}
+
+	return opStatus, result.Error
 }
