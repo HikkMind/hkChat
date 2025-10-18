@@ -4,7 +4,7 @@ WORKDIR /app
 
 # COPY ./go.mod ./go.sum ./
 COPY ./auth ./auth
-COPY ./.dbenv ./auth
+# COPY ./.dbenv ./auth
 COPY ./shared/tables ./shared/tables
 COPY ./shared/proto ./shared/proto
 
@@ -21,7 +21,6 @@ RUN go build -o auth
 
 FROM alpine:3
 COPY --from=builder /app/auth/auth /bin/auth
-COPY --from=builder /app/auth/.dbenv /bin/.dbenv
 COPY --from=builder /bin/grpc_health_probe /bin/grpc_health_probe
 EXPOSE 8081
 EXPOSE 6001

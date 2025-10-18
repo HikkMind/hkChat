@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	ChatService_LoadChatHistory_FullMethodName = "/chatstream.ChatService/LoadChatHistory"
 	ChatService_ProcessMessage_FullMethodName  = "/chatstream.ChatService/ProcessMessage"
+	ChatService_LoadChatList_FullMethodName    = "/chatstream.ChatService/LoadChatList"
 )
 
 // ChatServiceClient is the client API for ChatService service.
@@ -29,6 +30,7 @@ const (
 type ChatServiceClient interface {
 	LoadChatHistory(ctx context.Context, in *ChatHistoryRequest, opts ...grpc.CallOption) (*ChatHistoryResponse, error)
 	ProcessMessage(ctx context.Context, in *MessageTable, opts ...grpc.CallOption) (*OperationStatus, error)
+	LoadChatList(ctx context.Context, in *ChatListRequest, opts ...grpc.CallOption) (*ChatListResponse, error)
 }
 
 type chatServiceClient struct {
@@ -59,12 +61,23 @@ func (c *chatServiceClient) ProcessMessage(ctx context.Context, in *MessageTable
 	return out, nil
 }
 
+func (c *chatServiceClient) LoadChatList(ctx context.Context, in *ChatListRequest, opts ...grpc.CallOption) (*ChatListResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChatListResponse)
+	err := c.cc.Invoke(ctx, ChatService_LoadChatList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChatServiceServer is the server API for ChatService service.
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility.
 type ChatServiceServer interface {
 	LoadChatHistory(context.Context, *ChatHistoryRequest) (*ChatHistoryResponse, error)
 	ProcessMessage(context.Context, *MessageTable) (*OperationStatus, error)
+	LoadChatList(context.Context, *ChatListRequest) (*ChatListResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -80,6 +93,9 @@ func (UnimplementedChatServiceServer) LoadChatHistory(context.Context, *ChatHist
 }
 func (UnimplementedChatServiceServer) ProcessMessage(context.Context, *MessageTable) (*OperationStatus, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ProcessMessage not implemented")
+}
+func (UnimplementedChatServiceServer) LoadChatList(context.Context, *ChatListRequest) (*ChatListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoadChatList not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
 func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
@@ -138,6 +154,24 @@ func _ChatService_ProcessMessage_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatService_LoadChatList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChatListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).LoadChatList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_LoadChatList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).LoadChatList(ctx, req.(*ChatListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +186,10 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ProcessMessage",
 			Handler:    _ChatService_ProcessMessage_Handler,
+		},
+		{
+			MethodName: "LoadChatList",
+			Handler:    _ChatService_LoadChatList_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

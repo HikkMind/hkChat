@@ -35,19 +35,25 @@ func NewServer() *DatabaseServer {
 	server.logger = log.Default()
 	server.logger.SetPrefix("[ DATABASE ]")
 
-	server.postgresInit()
-	server.redisInit()
-
 	server.refreshTTL = 7 * 24 * time.Hour
 
 	return server
 }
 
 func (server *DatabaseServer) StartServer() {
-	go server.startGrpcServer()
+
+	server.logger.Print("starting server at time : ", time.Now(), "...")
+
+	server.postgresInit()
+	server.redisInit()
+
+	server.startGrpcServer()
 }
 
 func (server *DatabaseServer) postgresInit() {
+
+	server.logger.Print("postgres connecting...")
+
 	dsn := os.Getenv("DB_CONFIG")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -57,21 +63,27 @@ func (server *DatabaseServer) postgresInit() {
 		log.Fatal("migration failed:", err)
 	}
 	server.databaseConnection = db
-	server.logger.Print("connected to database")
+	server.logger.Print("connected to postgres")
 }
 
 func (server *DatabaseServer) redisInit() {
+
+	server.logger.Print("redis connecting...")
+
 	server.redisConnection = redis.NewClient(&redis.Options{
 		Addr:     os.Getenv("REDIS_ADDR"),
 		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0,
 	})
 
-	_, err := server.redisConnection.Ping(context.Background()).Result()
+	connResult, err := server.redisConnection.Ping(context.Background()).Result()
+	server.logger.Print("redis connection : ", connResult)
 	if err != nil {
 		server.logger.Fatal("failed connect redis: ", err)
 		return
 	}
+
+	server.redisContext, server.redisContextCancel = context.WithCancel(context.Background())
 
 	server.logger.Print("connected to redis")
 }

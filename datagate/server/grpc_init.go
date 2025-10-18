@@ -34,7 +34,7 @@ func (server *DatabaseServer) startGrpcServer() {
 		return
 	}
 
-	server.logger.Print("create grpc connection")
+	server.logger.Print("start grpc server")
 
 	if err := grpcServer.Serve(listener); err != nil {
 		server.logger.Fatal("failed start listen port : ", err)

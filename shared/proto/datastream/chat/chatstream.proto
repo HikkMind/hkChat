@@ -19,12 +19,24 @@ message MessageTable {
 	google.protobuf.Timestamp time = 5;
 }
 
-message ChatHistoryResponse {
-    repeated Message history = 1;
+message ChatInfo{
+    uint32 chatID = 1;
+    string chatName = 2;
+}
+
+message ChatListRequest {
+}
+
+message ChatListResponse {
+    repeated ChatInfo ChatList = 1;
 }
 
 message ChatHistoryRequest {
     int32 chatId = 1;
+}
+
+message ChatHistoryResponse {
+    repeated Message history = 1;
 }
 
 message OperationStatus {
@@ -34,4 +46,6 @@ message OperationStatus {
 service ChatService {
     rpc LoadChatHistory(ChatHistoryRequest) returns (ChatHistoryResponse);
     rpc ProcessMessage(MessageTable) returns (OperationStatus);
+
+    rpc LoadChatList(ChatListRequest) returns (ChatListResponse);
 }

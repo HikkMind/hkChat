@@ -28,7 +28,8 @@ func (chat *Chat) processNewMessage(message *tables.Message) {
 	// result := chat.database.
 	// 	Table("messages").
 	// 	Create(message)
-	_, err := chat.databaseClient.ProcessMessage(context.Background(), &chatstream.MessageTable{
+	cont, _ := context.WithCancel(context.Background())
+	_, err := chat.databaseClient.ProcessMessage(cont, &chatstream.MessageTable{
 		SenderID:       uint32(message.SenderID),
 		SenderUsername: message.SenderUsername,
 		ChatID:         uint32(message.ChatID),
@@ -48,14 +49,12 @@ func (chat *Chat) processNewMessage(message *tables.Message) {
 		Time:    message.CreatedAt,
 	}
 
-	// chat.userMutex.RLock()
-	chat.messageMutex.RLock()
+	chat.userMutex.RLock()
 	chat.messages = append(chat.messages, userMessage)
 	for _, userChannel := range chat.userChannelList {
 		userChannel <- userMessage
 	}
-	// chat.userMutex.RUnlock()
-	chat.messageMutex.RUnlock()
+	chat.userMutex.RUnlock()
 	chat.logger.Print("send new message to users")
 
 }
