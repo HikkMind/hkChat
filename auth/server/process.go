@@ -7,7 +7,6 @@ import (
 	"time"
 
 	authstream "hkchat/proto/datastream/auth"
-	"hkchat/tables"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -63,7 +62,7 @@ func (server *AuthServer) generateToken(currentUser authUserRequest, tokenType s
 	return tokenString, nil
 }
 
-func (server *AuthServer) getUserInfo(authUser authUserRequest, user *tables.User) bool {
+func (server *AuthServer) getUserInfo(authUser authUserRequest) (bool, int) {
 	// result := server.database.Where("username = ? AND password = ?", authUser.Username, authUser.Password).First(&user)
 	// if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 	// 	server.logger.Print("wrong login or password")
@@ -80,15 +79,15 @@ func (server *AuthServer) getUserInfo(authUser authUserRequest, user *tables.Use
 	})
 	if err != nil {
 		server.logger.Print("request error : ", err)
-		return false
+		return false, -1
 	}
 	if !authResult.Status {
 		server.logger.Print("wrong login or password")
 	}
-	return authResult.Status
+	return authResult.Status, int(authResult.UserID)
 }
 
-func (server *AuthServer) generateTokenLogin(authUser authUserRequest) (string, string) {
+func (server *AuthServer) generteTokenLogin(authUser authUserRequest) (string, string) {
 	accessToken, err := server.generateToken(authUser, "access")
 	if len(accessToken) == 0 || err != nil {
 		server.logger.Print("failed generate access token : ", err)

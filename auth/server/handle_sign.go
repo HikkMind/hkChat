@@ -7,7 +7,6 @@ import (
 	"time"
 
 	authstream "hkchat/proto/datastream/auth"
-	"hkchat/tables"
 )
 
 var (
@@ -23,16 +22,15 @@ func (server *AuthServer) authLogin(responseWriter http.ResponseWriter, request 
 		return
 	}
 
-	var user tables.User
-	ok := server.getUserInfo(authUser, &user)
+	ok, userID := server.getUserInfo(authUser)
 	if !ok {
 		http.Error(responseWriter, "wrong login or password", http.StatusUnauthorized)
 		return
 	}
 
-	authUser.UserId = user.ID
+	authUser.UserId = uint(userID)
 
-	accessToken, refreshToken := server.generateTokenLogin(authUserRequest{Username: authUser.Username, UserId: authUser.UserId})
+	accessToken, refreshToken := server.generteTokenLogin(authUserRequest{Username: authUser.Username, UserId: authUser.UserId})
 	if len(accessToken) == 0 || len(refreshToken) == 0 {
 		http.Error(responseWriter, "failed generate access/refresh token", http.StatusInternalServerError)
 	}

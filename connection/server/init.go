@@ -100,12 +100,17 @@ func (server *ChatServer) grpcDatagateInit() {
 func (server *ChatServer) loadChatList() {
 	// allChats := make([]tables.Chat, 0)
 	// server.database.Table("chats").Find(&allChats)
+
+	server.logger.Print("loading chat list...")
+
 	allChats, err := server.messageDatabaseClient.LoadChatList(context.Background(), &chatstream.ChatListRequest{})
 
 	if err != nil {
 		server.logger.Fatal("failed load chats : ", err)
 		return
 	}
+
+	server.logger.Print("loaded chats : ", len(allChats.ChatList))
 
 	server.chatList = make(map[uint]chan chat.ControlMessage)
 	server.chatListName = make(map[uint]string)
@@ -118,6 +123,8 @@ func (server *ChatServer) loadChatList() {
 
 		go chat.HandleChat(chatChannel, uint(currentChat.ChatID))
 	}
+
+	server.logger.Print("start handle all chats")
 }
 
 func (server *ChatServer) serverVariablesInit() {

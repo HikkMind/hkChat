@@ -15,7 +15,7 @@ func (server *DatabaseServer) VerifyUserPassword(ctx context.Context, request *a
 
 	var user tables.User
 	result := server.databaseConnection.Where("username = ? AND password = ?", request.Username, request.Password).First(&user)
-	verifyResult := &authstream.UserDataResponse{Status: false}
+	verifyResult := &authstream.UserDataResponse{Status: false, UserID: uint32(user.ID)}
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		server.logger.Print("wrong login or password")

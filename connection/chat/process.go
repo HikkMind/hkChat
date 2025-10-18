@@ -38,7 +38,8 @@ func (chat *Chat) processNewMessage(message *tables.Message) {
 	})
 
 	if err != nil {
-		chat.logger.Print("create chat message error for chat ", chat.chatId, ": ", message)
+		chat.logger.Print("message error chat ", chat.chatId, ": ",
+			message.SenderUsername, " ", message.Message, " err=", err)
 		return
 	}
 	chat.logger.Print("add new message to database")

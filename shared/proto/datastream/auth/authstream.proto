@@ -10,6 +10,7 @@ message UserDataRequest {
 
 message UserDataResponse {
     bool status = 1;
+    uint32 userID = 2;
 }
 
 message UserRefreshTokenRequest {
