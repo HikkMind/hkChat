@@ -4,6 +4,7 @@ import (
 	"context"
 	chatstream "hkchat/proto/datastream/chat"
 	"hkchat/tables"
+	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -16,7 +17,14 @@ func (server *DatabaseServer) LoadChatHistory(ctx context.Context, request *chat
 		History: []*chatstream.Message{},
 	}
 
-	tableChatHistory := make([]tables.Message, 0)
+	type messageInfo struct {
+		SenderUsername string `gorm:"column:username"`
+		Message        string
+		CreatedAt      time.Time
+	}
+
+	// tableChatHistory := make([]tables.Message, 0)
+	tableChatHistory := make([]messageInfo, 0)
 
 	result := server.databaseConnection.
 		Table("messages").
