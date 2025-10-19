@@ -25,9 +25,6 @@ func (chat *Chat) handleInputMessages(chatContext context.Context) {
 
 func (chat *Chat) processNewMessage(message *tables.Message) {
 
-	// result := chat.database.
-	// 	Table("messages").
-	// 	Create(message)
 	cont, _ := context.WithCancel(context.Background())
 	_, err := chat.databaseClient.ProcessMessage(cont, &chatstream.MessageTable{
 		SenderID:       uint32(message.SenderID),

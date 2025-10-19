@@ -5,6 +5,7 @@ go 1.24.6
 require (
 	github.com/redis/go-redis/v9 v9.12.1
 	google.golang.org/grpc v1.75.0
+	google.golang.org/protobuf v1.36.8
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.2
 	hkchat/proto/datastream v0.0.0
@@ -26,7 +27,6 @@ require (
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.26.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
-	google.golang.org/protobuf v1.36.8 // indirect
 )
 
 replace (
