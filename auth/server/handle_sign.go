@@ -36,7 +36,6 @@ func (server *AuthServer) authLogin(responseWriter http.ResponseWriter, request 
 	}
 
 	server.logger.Print("user logged in : ", authUser.Username)
-	// server.redisDatabase.Set(server.redisContext, "refresh:"+refreshToken, "", refreshTTL)
 	server.databaseClient.SetRefreshToken(context.Background(), &authstream.UserRefreshTokenRequest{
 		RefreshToken: "refresh:" + refreshToken,
 	})
@@ -71,7 +70,6 @@ func (server *AuthServer) authLogout(responseWriter http.ResponseWriter, request
 
 	refreshCookie, _ := request.Cookie("refresh_token")
 
-	// server.redisDatabase.Del(server.redisContext, "refresh:"+refreshCookie.Value).Err()
 	server.databaseClient.UnsetRefreshToken(context.Background(), &authstream.UserRefreshTokenRequest{
 		RefreshToken: "refresh:" + refreshCookie.Value,
 	})
@@ -93,7 +91,6 @@ func (server *AuthServer) authRegister(responseWriter http.ResponseWriter, reque
 		server.logger.Print("(REGISTER) empty login or password")
 	}
 
-	// result := server.database.Create(&tables.User{Username: authUser.Username, Password: authUser.Password})
 	_, err = server.databaseClient.RegisterNewUser(context.Background(), &authstream.UserDataRequest{
 		Username: authUser.Username,
 		Password: authUser.Password,
