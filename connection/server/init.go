@@ -17,7 +17,6 @@ import (
 )
 
 type ChatServer struct {
-	// database     *gorm.DB
 	chatList     map[uint]chan chat.ControlMessage
 	chatListName map[uint]string
 	logger       *log.Logger
@@ -64,19 +63,6 @@ func (server *ChatServer) StartServer() {
 
 }
 
-// func (server *ChatServer) databaseInit() {
-// 	dsn := os.Getenv("DB_CONFIG")
-// 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-// 	if err != nil {
-// 		log.Fatal("failed to connect:", err)
-// 	}
-// 	if err := db.AutoMigrate(&tables.User{}, &tables.Chat{}, &tables.Message{}); err != nil {
-// 		log.Fatal("migration failed:", err)
-// 	}
-// 	server.database = db
-// 	fmt.Println("connected to database")
-// }
-
 func (server *ChatServer) grpcAuthInit() {
 	tokenConnection, err := grpc.NewClient("auth"+server.authPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -98,8 +84,6 @@ func (server *ChatServer) grpcDatagateInit() {
 }
 
 func (server *ChatServer) loadChatList() {
-	// allChats := make([]tables.Chat, 0)
-	// server.database.Table("chats").Find(&allChats)
 
 	server.logger.Print("loading chat list...")
 
