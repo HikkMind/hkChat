@@ -23,7 +23,6 @@ func (server *DatabaseServer) LoadChatHistory(ctx context.Context, request *chat
 		CreatedAt      time.Time
 	}
 
-	// tableChatHistory := make([]tables.Message, 0)
 	tableChatHistory := make([]messageInfo, 0)
 
 	result := server.databaseConnection.
@@ -32,7 +31,6 @@ func (server *DatabaseServer) LoadChatHistory(ctx context.Context, request *chat
 		Joins("JOIN users ON users.id = messages.sender_id").
 		Where("messages.chat_id = ?", request.ChatId).
 		Order("messages.created_at ASC").
-		// Find(&chatHistory.History)
 		Find(&tableChatHistory)
 
 	chatHistory.History = make([]*chatstream.Message, len(tableChatHistory))
@@ -51,9 +49,6 @@ func (server *DatabaseServer) LoadChatHistory(ctx context.Context, request *chat
 
 func (server *DatabaseServer) ProcessMessage(ctx context.Context, request *chatstream.MessageTable) (*chatstream.OperationStatus, error) {
 
-	// tables.Message
-
-	// server.logger.Print("processing new message chat ID: ", request.ChatID, "...")
 	server.logger.Print("processing new message: ", request, "...")
 
 	newMessage := tables.Message{

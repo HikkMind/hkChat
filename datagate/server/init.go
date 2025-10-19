@@ -17,7 +17,6 @@ import (
 
 type DatabaseServer struct {
 	logger *log.Logger
-	// databaseClient authstream.UserDataServiceClient
 
 	databaseConnection *gorm.DB
 	redisConnection    *redis.Client
