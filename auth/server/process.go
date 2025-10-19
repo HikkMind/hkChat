@@ -63,16 +63,6 @@ func (server *AuthServer) generateToken(currentUser authUserRequest, tokenType s
 }
 
 func (server *AuthServer) getUserInfo(authUser authUserRequest) (bool, int) {
-	// result := server.database.Where("username = ? AND password = ?", authUser.Username, authUser.Password).First(&user)
-	// if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-	// 	server.logger.Print("wrong login or password")
-	// 	// responseWriter.WriteHeader(http.StatusConflict)
-	// 	return false
-	// } else if result.Error != nil {
-	// 	server.logger.Print("request error : ", result.Error.Error())
-	// 	return false
-	// }
-	// return true
 	authResult, err := server.databaseClient.VerifyUserPassword(context.Background(), &authstream.UserDataRequest{
 		Username: authUser.Username,
 		Password: authUser.Password,
@@ -103,7 +93,6 @@ func (server *AuthServer) generteTokenLogin(authUser authUserRequest) (string, s
 }
 
 func (server *AuthServer) parseAccessRequestToken(requestToken string) (string, bool) {
-	// server.logger.Printf("request token (raw): %q, length: %d", requestToken, len(requestToken))
 	requestToken = strings.TrimSpace(requestToken)
 	if len(requestToken) < 7 || !strings.HasPrefix(requestToken, "Bearer ") {
 		server.logger.Printf("invalid token: prefix=%q, expected 'Bearer '", requestToken[:min(len(requestToken), 7)])
@@ -111,7 +100,6 @@ func (server *AuthServer) parseAccessRequestToken(requestToken string) (string, 
 	}
 
 	token := requestToken[7:]
-	// server.logger.Printf("extracted token: %q", token)
 	return token, true
 }
 
