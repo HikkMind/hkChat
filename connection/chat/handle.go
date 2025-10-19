@@ -5,13 +5,11 @@ import (
 	"time"
 
 	"hkchat/tables"
-
-	"gorm.io/gorm"
 )
 
-func HandleChat(signalChannel <-chan ControlMessage, chatId uint, database *gorm.DB) {
+func HandleChat(signalChannel <-chan ControlMessage, chatId uint) {
 
-	currentChat := newChat(chatId, database)
+	currentChat := newChat(chatId)
 	if currentChat == nil {
 		return
 	}

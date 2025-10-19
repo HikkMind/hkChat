@@ -2,30 +2,32 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"os"
 
 	"connection-service/chat"
-	"hkchat/tables"
+
+	chatstream "hkchat/proto/datastream/chat"
 
 	tokenverify "github.com/hikkmind/hkchat/proto/tokenverify"
-	"github.com/lpernett/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 type ChatServer struct {
-	database     *gorm.DB
+	// database     *gorm.DB
 	chatList     map[uint]chan chat.ControlMessage
 	chatListName map[uint]string
 	logger       *log.Logger
 
-	authTokenClient tokenverify.AuthServiceClient
+	serverPort   string
+	datagatePort string
+	authPort     string
+
+	authTokenClient       tokenverify.AuthServiceClient
+	messageDatabaseClient chatstream.ChatServiceClient
 }
 
 type HandleConnectionMessage struct {
@@ -43,67 +45,94 @@ type userInfo struct {
 }
 
 func (server *ChatServer) StartServer() {
+	server.serverVariablesInit()
 	serverHTTP := &http.Server{
-		Addr: ":8080",
+		Addr: server.serverPort,
 		ConnContext: func(ctx context.Context, connection net.Conn) context.Context {
 			return context.WithValue(ctx, "connection", connection)
 		},
 	}
 
 	http.HandleFunc("/chatlist", server.connectUser)
-	server.logger = log.Default()
-	server.logger.SetPrefix("[ CONNECTION ]")
 
-	server.databaseInit()
-	server.grpcInit()
-	server.loadChats()
+	server.grpcDatagateInit()
+	server.grpcAuthInit()
+
+	server.loadChatList()
 
 	serverHTTP.ListenAndServe()
 
 }
 
-func (server *ChatServer) databaseInit() {
-	err := godotenv.Load(".dbenv")
-	if err != nil {
-		log.Fatal("Error loading .env file : ", err)
-	}
-	dsn := os.Getenv("DB_CONFIG")
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatal("failed to connect:", err)
-	}
-	if err := db.AutoMigrate(&tables.User{}, &tables.Chat{}, &tables.Message{}); err != nil {
-		log.Fatal("migration failed:", err)
-	}
+// func (server *ChatServer) databaseInit() {
+// 	dsn := os.Getenv("DB_CONFIG")
+// 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+// 	if err != nil {
+// 		log.Fatal("failed to connect:", err)
+// 	}
+// 	if err := db.AutoMigrate(&tables.User{}, &tables.Chat{}, &tables.Message{}); err != nil {
+// 		log.Fatal("migration failed:", err)
+// 	}
+// 	server.database = db
+// 	fmt.Println("connected to database")
+// }
 
-	server.database = db
-
-	fmt.Println("connected to database")
-}
-
-func (server *ChatServer) grpcInit() {
-	tokenConnection, err := grpc.NewClient("auth:6001", grpc.WithTransportCredentials(insecure.NewCredentials()))
+func (server *ChatServer) grpcAuthInit() {
+	tokenConnection, err := grpc.NewClient("auth"+server.authPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		server.logger.Print("failed check auth token : ", err)
+		server.logger.Print("failed connect auth grpc : ", err)
 		return
 	}
 	server.authTokenClient = tokenverify.NewAuthServiceClient(tokenConnection)
-	server.logger.Print("connected to grpc server")
+	server.logger.Print("connected to auth grpc server")
 }
 
-func (server *ChatServer) loadChats() {
-	allChats := make([]tables.Chat, 0)
-	server.database.Table("chats").Find(&allChats)
+func (server *ChatServer) grpcDatagateInit() {
+	dataConnection, err := grpc.NewClient("datagate"+server.datagatePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		server.logger.Print("failed connect datagate grpc : ", err)
+		return
+	}
+	server.messageDatabaseClient = chatstream.NewChatServiceClient(dataConnection)
+	server.logger.Print("connected to datagate grpc server")
+}
+
+func (server *ChatServer) loadChatList() {
+	// allChats := make([]tables.Chat, 0)
+	// server.database.Table("chats").Find(&allChats)
+
+	server.logger.Print("loading chat list...")
+
+	allChats, err := server.messageDatabaseClient.LoadChatList(context.Background(), &chatstream.ChatListRequest{})
+
+	if err != nil {
+		server.logger.Fatal("failed load chats : ", err)
+		return
+	}
+
+	server.logger.Print("loaded chats : ", len(allChats.ChatList))
 
 	server.chatList = make(map[uint]chan chat.ControlMessage)
 	server.chatListName = make(map[uint]string)
 
-	for _, currentChat := range allChats {
+	for _, currentChat := range allChats.ChatList {
 		chatChannel := make(chan chat.ControlMessage)
 
-		server.chatList[currentChat.ID] = chatChannel
-		server.chatListName[currentChat.ID] = currentChat.Name
+		server.chatList[uint(currentChat.ChatID)] = chatChannel
+		server.chatListName[uint(currentChat.ChatID)] = currentChat.ChatName
 
-		go chat.HandleChat(chatChannel, currentChat.ID, server.database)
+		go chat.HandleChat(chatChannel, uint(currentChat.ChatID))
 	}
+
+	server.logger.Print("start handle all chats")
+}
+
+func (server *ChatServer) serverVariablesInit() {
+
+	server.serverPort = ":" + os.Getenv("CONN_PORT")
+	server.authPort = ":" + os.Getenv("AUTH_GRPC_PORT")
+	server.datagatePort = ":" + os.Getenv("DATAGATE_GRPC_PORT")
+
+	server.logger = log.Default()
+	server.logger.SetPrefix("[ CONNECTION ]")
 }

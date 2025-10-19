@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package chatstream;
+option go_package = ".;chatstream";
+
+import "google/protobuf/timestamp.proto";
+
+message Message {
+    string sender = 1;
+    string message = 2;
+    google.protobuf.Timestamp time = 3;
+}
+
+message MessageTable {
+    uint32 senderID = 1;
+	string senderUsername = 2;
+	uint32 chatID = 3;
+	string Message = 4;
+	google.protobuf.Timestamp time = 5;
+}
+
+message ChatInfo{
+    uint32 chatID = 1;
+    string chatName = 2;
+}
+
+message ChatListRequest {
+}
+
+message ChatListResponse {
+    repeated ChatInfo ChatList = 1;
+}
+
+message ChatHistoryRequest {
+    int32 chatId = 1;
+}
+
+message ChatHistoryResponse {
+    repeated Message history = 1;
+}
+
+message OperationStatus {
+    bool status = 1;
+}
+
+service ChatService {
+    rpc LoadChatHistory(ChatHistoryRequest) returns (ChatHistoryResponse);
+    rpc ProcessMessage(MessageTable) returns (OperationStatus);
+
+    rpc LoadChatList(ChatListRequest) returns (ChatListResponse);
+}

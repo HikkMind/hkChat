@@ -1,14 +1,14 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"time"
 
-	"hkchat/tables"
+	authstream "hkchat/proto/datastream/auth"
 
 	"github.com/golang-jwt/jwt/v5"
-	"gorm.io/gorm"
 )
 
 type Claims struct {
@@ -62,20 +62,32 @@ func (server *AuthServer) generateToken(currentUser authUserRequest, tokenType s
 	return tokenString, nil
 }
 
-func (server *AuthServer) getUserInfo(authUser authUserRequest, user *tables.User) bool {
-	result := server.database.Where("username = ? AND password = ?", authUser.Username, authUser.Password).First(&user)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		server.logger.Print("wrong login or password")
-		// responseWriter.WriteHeader(http.StatusConflict)
-		return false
-	} else if result.Error != nil {
-		server.logger.Print("request error : ", result.Error.Error())
-		return false
+func (server *AuthServer) getUserInfo(authUser authUserRequest) (bool, int) {
+	// result := server.database.Where("username = ? AND password = ?", authUser.Username, authUser.Password).First(&user)
+	// if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	// 	server.logger.Print("wrong login or password")
+	// 	// responseWriter.WriteHeader(http.StatusConflict)
+	// 	return false
+	// } else if result.Error != nil {
+	// 	server.logger.Print("request error : ", result.Error.Error())
+	// 	return false
+	// }
+	// return true
+	authResult, err := server.databaseClient.VerifyUserPassword(context.Background(), &authstream.UserDataRequest{
+		Username: authUser.Username,
+		Password: authUser.Password,
+	})
+	if err != nil {
+		server.logger.Print("request error : ", err)
+		return false, -1
 	}
-	return true
+	if !authResult.Status {
+		server.logger.Print("wrong login or password")
+	}
+	return authResult.Status, int(authResult.UserID)
 }
 
-func (server *AuthServer) generateTokenLogin(authUser authUserRequest) (string, string) {
+func (server *AuthServer) generteTokenLogin(authUser authUserRequest) (string, string) {
 	accessToken, err := server.generateToken(authUser, "access")
 	if len(accessToken) == 0 || err != nil {
 		server.logger.Print("failed generate access token : ", err)

@@ -1,11 +1,12 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
 
-	"hkchat/tables"
+	authstream "hkchat/proto/datastream/auth"
 )
 
 var (
@@ -21,22 +22,24 @@ func (server *AuthServer) authLogin(responseWriter http.ResponseWriter, request 
 		return
 	}
 
-	var user tables.User
-	ok := server.getUserInfo(authUser, &user)
+	ok, userID := server.getUserInfo(authUser)
 	if !ok {
 		http.Error(responseWriter, "wrong login or password", http.StatusUnauthorized)
 		return
 	}
 
-	authUser.UserId = user.ID
+	authUser.UserId = uint(userID)
 
-	accessToken, refreshToken := server.generateTokenLogin(authUserRequest{Username: authUser.Username, UserId: authUser.UserId})
+	accessToken, refreshToken := server.generteTokenLogin(authUserRequest{Username: authUser.Username, UserId: authUser.UserId})
 	if len(accessToken) == 0 || len(refreshToken) == 0 {
 		http.Error(responseWriter, "failed generate access/refresh token", http.StatusInternalServerError)
 	}
 
 	server.logger.Print("user logged in : ", authUser.Username)
-	server.redisDatabase.Set(server.redisContext, "refresh:"+refreshToken, "", refreshTTL)
+	// server.redisDatabase.Set(server.redisContext, "refresh:"+refreshToken, "", refreshTTL)
+	server.databaseClient.SetRefreshToken(context.Background(), &authstream.UserRefreshTokenRequest{
+		RefreshToken: "refresh:" + refreshToken,
+	})
 
 	http.SetCookie(responseWriter, &http.Cookie{
 		Name:     "refresh_token",
@@ -68,7 +71,10 @@ func (server *AuthServer) authLogout(responseWriter http.ResponseWriter, request
 
 	refreshCookie, _ := request.Cookie("refresh_token")
 
-	server.redisDatabase.Del(server.redisContext, "refresh:"+refreshCookie.Value).Err()
+	// server.redisDatabase.Del(server.redisContext, "refresh:"+refreshCookie.Value).Err()
+	server.databaseClient.UnsetRefreshToken(context.Background(), &authstream.UserRefreshTokenRequest{
+		RefreshToken: "refresh:" + refreshCookie.Value,
+	})
 
 	responseWriter.WriteHeader(http.StatusOK)
 }
@@ -87,9 +93,13 @@ func (server *AuthServer) authRegister(responseWriter http.ResponseWriter, reque
 		server.logger.Print("(REGISTER) empty login or password")
 	}
 
-	result := server.database.Create(&tables.User{Username: authUser.Username, Password: authUser.Password})
-	if result.Error != nil {
-		server.logger.Print("failed register new user : ", result.Error.Error())
+	// result := server.database.Create(&tables.User{Username: authUser.Username, Password: authUser.Password})
+	_, err = server.databaseClient.RegisterNewUser(context.Background(), &authstream.UserDataRequest{
+		Username: authUser.Username,
+		Password: authUser.Password,
+	})
+	if err != nil {
+		server.logger.Print("failed register new user : ", err)
 		responseWriter.WriteHeader(http.StatusInternalServerError)
 		return
 	}

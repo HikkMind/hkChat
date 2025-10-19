@@ -5,7 +5,6 @@ WORKDIR /app
 # COPY ./go.mod ./go.sum ./
 COPY ./shared/structs ./shared/structs
 COPY ./connection ./connection
-COPY ./.dbenv ./connection
 COPY ./shared/tables ./shared/tables
 COPY ./shared/proto ./shared/proto
 
@@ -16,7 +15,6 @@ RUN go build -o connection
 
 FROM alpine:3
 COPY --from=builder /app/connection/connection /bin/connection
-COPY --from=builder /app/connection/.dbenv /bin/.dbenv
 EXPOSE 8080
 
 WORKDIR /bin

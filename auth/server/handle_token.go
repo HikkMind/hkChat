@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	// tokenverify "github.com/hikkmind/chat-proto"
+	authstream "hkchat/proto/datastream/auth"
 	tokenverify "hkchat/proto/tokenverify"
 )
 
@@ -28,7 +29,7 @@ func (server *AuthServer) authCheckToken(responseWriter http.ResponseWriter, req
 	parsedAccessToken, err := jwt.ParseWithClaims(accessToken, &claims, checkAccessTokenMethod)
 	if err != nil || !parsedAccessToken.Valid {
 		http.Error(responseWriter, "invalid auth token", http.StatusUnauthorized)
-		server.redisDatabase.Del(server.redisContext, accessToken)
+		// server.redisDatabase.Del(server.redisContext, accessToken)
 		server.logger.Print("invalid access token (check token)")
 		return
 	}
@@ -77,7 +78,10 @@ func (server *AuthServer) verifyAccessToken(responseWriter http.ResponseWriter, 
 	}
 
 	server.logger.Print("try get " + "refresh:" + refreshCookie.Value)
-	exists, err := server.redisDatabase.Exists(server.redisContext, "refresh:"+refreshCookie.Value).Result()
+	// exists, err := server.redisDatabase.Exists(server.redisContext, "refresh:"+refreshCookie.Value).Result()
+	exists, err := server.databaseClient.FindRefreshToken(context.Background(), &authstream.UserRefreshTokenRequest{
+		RefreshToken: "refresh:" + refreshCookie.Value,
+	})
 	if err != nil {
 		server.logger.Print("refresh redis error : ", err)
 		http.Error(responseWriter, "refresh redis error", http.StatusInternalServerError)
@@ -85,7 +89,7 @@ func (server *AuthServer) verifyAccessToken(responseWriter http.ResponseWriter, 
 	}
 	server.logger.Print("get refresh token from redis")
 
-	if exists == 0 {
+	if !exists.Status {
 		responseWriter.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(responseWriter).Encode(authMessage{
 			Status: "unauthorized",
@@ -120,7 +124,10 @@ func (server *AuthServer) VerifyToken(ctx context.Context, request *tokenverify.
 	var claims Claims
 	parsedAccessToken, err := jwt.ParseWithClaims(accessToken, &claims, checkAccessTokenMethod)
 	if err != nil || !parsedAccessToken.Valid {
-		server.redisDatabase.Del(server.redisContext, accessToken)
+		// server.redisDatabase.Del(server.redisContext, accessToken)
+		// server.databaseClient.UnsetToken(context.Background(), &authstream.UserTokenRequest{=
+		// 	Token: accessToken,
+		// })
 		server.logger.Print("invalid access token (check token)")
 		return nil, errors.New("invalid access token (check token)")
 	}

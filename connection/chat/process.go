@@ -3,8 +3,11 @@ package chat
 import (
 	"context"
 
+	chatstream "hkchat/proto/datastream/chat"
 	"hkchat/structs"
 	"hkchat/tables"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (chat *Chat) handleInputMessages(chatContext context.Context) {
@@ -22,12 +25,21 @@ func (chat *Chat) handleInputMessages(chatContext context.Context) {
 
 func (chat *Chat) processNewMessage(message *tables.Message) {
 
-	result := chat.database.
-		Table("messages").
-		Create(message)
+	// result := chat.database.
+	// 	Table("messages").
+	// 	Create(message)
+	cont, _ := context.WithCancel(context.Background())
+	_, err := chat.databaseClient.ProcessMessage(cont, &chatstream.MessageTable{
+		SenderID:       uint32(message.SenderID),
+		SenderUsername: message.SenderUsername,
+		ChatID:         uint32(message.ChatID),
+		Message:        message.Message,
+		Time:           timestamppb.New(message.CreatedAt),
+	})
 
-	if result.Error != nil {
-		chat.logger.Print("create chat message error for chat ", chat.chatId, ": ", message)
+	if err != nil {
+		chat.logger.Print("message error chat ", chat.chatId, ": ",
+			message.SenderUsername, " ", message.Message, " err=", err)
 		return
 	}
 	chat.logger.Print("add new message to database")
