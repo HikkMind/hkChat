@@ -39,6 +39,11 @@ message ChatHistoryResponse {
     repeated Message history = 1;
 }
 
+message CreateChatRequest {
+    uint32 userId = 1;
+    string chatName = 2;
+}
+
 message OperationStatus {
     bool status = 1;
 }
@@ -47,5 +52,6 @@ service ChatService {
     rpc LoadChatHistory(ChatHistoryRequest) returns (ChatHistoryResponse);
     rpc ProcessMessage(MessageTable) returns (OperationStatus);
 
+    rpc CreateNewChat(CreateChatRequest) returns (OperationStatus);
     rpc LoadChatList(ChatListRequest) returns (ChatListResponse);
 }

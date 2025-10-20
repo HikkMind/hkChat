@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"connection-service/chat"
+	chatstream "hkchat/proto/datastream/chat"
 	"hkchat/structs"
 
 	"github.com/gorilla/websocket"
@@ -77,7 +78,8 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 		case GetChats:
 			server.handleUserGetChats(connection)
 		case CreateChat:
-			server.logger.Print("user ", currentUser.UserId, " ", currentUser.Username, " creating chat ", message.Text)
+			server.handleCreateChat(currentUser, message.Text)
+			// server.logger.Print("user ", currentUser.UserId, " ", currentUser.Username, " creating chat ", message.Text)
 		}
 	}
 }
@@ -166,6 +168,22 @@ func (server *ChatServer) handleConnectionMessageSending(ctx context.Context, co
 			}
 		}
 	}
+}
+
+func (server *ChatServer) handleCreateChat(currentUser *userInfo, chatName string) {
+
+	result, err := server.messageDatabaseClient.CreateNewChat(context.Background(), &chatstream.CreateChatRequest{
+		UserId:   uint32(currentUser.UserId),
+		ChatName: chatName,
+	})
+
+	if err != nil || !result.Status {
+		server.logger.Printf("failed create chat %s by user %s(%d)\n : %s",
+			chatName, currentUser.Username, currentUser.UserId, err)
+	}
+
+	server.logger.Printf("chat %s created by user %s(%d)\n", chatName, currentUser.Username, currentUser.UserId)
+
 }
 
 func (server *ChatServer) newWebsocketConnection(responseWriter http.ResponseWriter, request *http.Request) (*userInfo, *websocket.Conn) {

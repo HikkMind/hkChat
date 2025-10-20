@@ -94,3 +94,19 @@ func (server *DatabaseServer) LoadChatList(ctx context.Context, request *chatstr
 		ChatList: response,
 	}, nil
 }
+func (server *DatabaseServer) CreateNewChat(ctx context.Context, request *chatstream.CreateChatRequest) (*chatstream.OperationStatus, error) {
+
+	newChat := tables.Chat{
+		Name:    request.ChatName,
+		OwnerID: uint(request.UserId),
+	}
+
+	result := server.databaseConnection.
+		Table("chats").
+		Create(&newChat)
+
+	opStatus := &chatstream.OperationStatus{Status: result.Error == nil}
+	server.logger.Printf("chat %s created by user (%d)\n", request.ChatName, request.UserId)
+
+	return opStatus, result.Error
+}
