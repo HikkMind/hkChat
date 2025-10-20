@@ -36,6 +36,7 @@ const (
 	SendMessage    = "send_message"
 	GetChats       = "get_chats"
 	GetChatHistory = "get_history"
+	CreateChat     = "create_chat"
 )
 
 func (server *ChatServer) handleUserConnection(connection *websocket.Conn, currentUser *userInfo) {
@@ -64,18 +65,19 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 		json.Unmarshal(msg, &message)
 		server.logger.Print("new chat signal : ", message)
 
-		if message.Intent == JoinChat {
+		switch message.Intent {
+		case JoinChat:
 			sendingContextCancel = server.handleUserJoin(&connection, uint(message.ChatId), currentUser)
 			server.logger.Print("joined user {", currentUser.Username, "}")
-
-		} else if message.Intent == LeaveChat {
+		case LeaveChat:
 			server.handleUserLeave(sendingContextCancel, uint(message.ChatId), int(currentUser.UserId))
 			server.logger.Print("leaved user {", currentUser.Username, "}")
-
-		} else if message.Intent == SendMessage {
+		case SendMessage:
 			server.handleUserSendMessage(message, currentUser)
-		} else if message.Intent == GetChats {
+		case GetChats:
 			server.handleUserGetChats(connection)
+		case CreateChat:
+			server.logger.Print("user ", currentUser.UserId, " ", currentUser.Username, " creating chat ", message.Text)
 		}
 	}
 }
