@@ -94,7 +94,7 @@ func (server *DatabaseServer) LoadChatList(ctx context.Context, request *chatstr
 		ChatList: response,
 	}, nil
 }
-func (server *DatabaseServer) CreateNewChat(ctx context.Context, request *chatstream.CreateChatRequest) (*chatstream.OperationStatus, error) {
+func (server *DatabaseServer) CreateNewChat(ctx context.Context, request *chatstream.CreateChatRequest) (*chatstream.CreateChatResponse, error) {
 
 	newChat := tables.Chat{
 		Name:    request.ChatName,
@@ -105,8 +105,8 @@ func (server *DatabaseServer) CreateNewChat(ctx context.Context, request *chatst
 		Table("chats").
 		Create(&newChat)
 
-	opStatus := &chatstream.OperationStatus{Status: result.Error == nil}
-	server.logger.Printf("chat %s created by user (%d)\n", request.ChatName, request.UserId)
+	chatCreateInfo := &chatstream.CreateChatResponse{Status: result.Error == nil, ChatId: uint32(newChat.ID)}
+	server.logger.Printf("chat %s(%d) created by user (%d)\n", request.ChatName, newChat.ID, request.UserId)
 
-	return opStatus, result.Error
+	return chatCreateInfo, result.Error
 }

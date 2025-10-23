@@ -182,7 +182,9 @@ func (server *ChatServer) handleCreateChat(currentUser *userInfo, chatName strin
 			chatName, currentUser.Username, currentUser.UserId, err)
 	}
 
-	server.logger.Printf("chat %s created by user %s(%d)\n", chatName, currentUser.Username, currentUser.UserId)
+	server.registerNewChat(uint(result.ChatId), chatName)
+
+	// server.logger.Printf("chat %s created by user %s(%d)\n", chatName, currentUser.Username, currentUser.UserId)
 
 }
 

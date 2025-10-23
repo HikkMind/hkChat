@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 
 	"connection-service/chat"
 
@@ -19,7 +20,9 @@ import (
 type ChatServer struct {
 	chatList     map[uint]chan chat.ControlMessage
 	chatListName map[uint]string
-	logger       *log.Logger
+	// chatListChannel chan chatstream.ChatInfo
+	chatListMutex sync.RWMutex
+	logger        *log.Logger
 
 	serverPort   string
 	datagatePort string
@@ -100,12 +103,7 @@ func (server *ChatServer) loadChatList() {
 	server.chatListName = make(map[uint]string)
 
 	for _, currentChat := range allChats.ChatList {
-		chatChannel := make(chan chat.ControlMessage)
-
-		server.chatList[uint(currentChat.ChatID)] = chatChannel
-		server.chatListName[uint(currentChat.ChatID)] = currentChat.ChatName
-
-		go chat.HandleChat(chatChannel, uint(currentChat.ChatID))
+		server.registerNewChat(uint(currentChat.ChatID), currentChat.ChatName)
 	}
 
 	server.logger.Print("start handle all chats")
@@ -117,6 +115,21 @@ func (server *ChatServer) serverVariablesInit() {
 	server.authPort = ":" + os.Getenv("AUTH_GRPC_PORT")
 	server.datagatePort = ":" + os.Getenv("DATAGATE_GRPC_PORT")
 
+	// server.chatListChannel = make(chan chatstream.ChatInfo)
+
 	server.logger = log.Default()
 	server.logger.SetPrefix("[ CONNECTION ]")
+}
+
+func (server *ChatServer) registerNewChat(chatID uint, chatName string) {
+
+	server.chatListMutex.Lock()
+	defer server.chatListMutex.Unlock()
+
+	chatChannel := make(chan chat.ControlMessage)
+
+	server.chatList[chatID] = chatChannel
+	server.chatListName[chatID] = chatName
+
+	go chat.HandleChat(chatChannel, chatID)
 }
