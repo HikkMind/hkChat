@@ -21,7 +21,7 @@ type Message struct {
 
 type Chat struct {
 	ID        uint      `gorm:"PrimaryKey;autoIncrement" json:"id"`
-	Name      string    `gorm:"not null" json:"name"`
+	Name      string    `gorm:"not null;unique" json:"name"`
 	CreatedAt time.Time `json:"-"`
 	OwnerID   uint      `gorm:"not null"`
 	Messages  []Message `gorm:"foreignKey:ChatID;references:ID;constraint:OnDelete:CASCADE" json:"-"`

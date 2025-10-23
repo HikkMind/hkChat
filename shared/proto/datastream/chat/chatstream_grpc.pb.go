@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v3.21.12
-// source: chatstream.proto
+// source: datastream/chat/chatstream.proto
 
 package chatstream
 
@@ -31,7 +31,7 @@ const (
 type ChatServiceClient interface {
 	LoadChatHistory(ctx context.Context, in *ChatHistoryRequest, opts ...grpc.CallOption) (*ChatHistoryResponse, error)
 	ProcessMessage(ctx context.Context, in *MessageTable, opts ...grpc.CallOption) (*OperationStatus, error)
-	CreateNewChat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*OperationStatus, error)
+	CreateNewChat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*CreateChatResponse, error)
 	LoadChatList(ctx context.Context, in *ChatListRequest, opts ...grpc.CallOption) (*ChatListResponse, error)
 }
 
@@ -63,9 +63,9 @@ func (c *chatServiceClient) ProcessMessage(ctx context.Context, in *MessageTable
 	return out, nil
 }
 
-func (c *chatServiceClient) CreateNewChat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*OperationStatus, error) {
+func (c *chatServiceClient) CreateNewChat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*CreateChatResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(OperationStatus)
+	out := new(CreateChatResponse)
 	err := c.cc.Invoke(ctx, ChatService_CreateNewChat_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func (c *chatServiceClient) LoadChatList(ctx context.Context, in *ChatListReques
 type ChatServiceServer interface {
 	LoadChatHistory(context.Context, *ChatHistoryRequest) (*ChatHistoryResponse, error)
 	ProcessMessage(context.Context, *MessageTable) (*OperationStatus, error)
-	CreateNewChat(context.Context, *CreateChatRequest) (*OperationStatus, error)
+	CreateNewChat(context.Context, *CreateChatRequest) (*CreateChatResponse, error)
 	LoadChatList(context.Context, *ChatListRequest) (*ChatListResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
@@ -107,7 +107,7 @@ func (UnimplementedChatServiceServer) LoadChatHistory(context.Context, *ChatHist
 func (UnimplementedChatServiceServer) ProcessMessage(context.Context, *MessageTable) (*OperationStatus, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ProcessMessage not implemented")
 }
-func (UnimplementedChatServiceServer) CreateNewChat(context.Context, *CreateChatRequest) (*OperationStatus, error) {
+func (UnimplementedChatServiceServer) CreateNewChat(context.Context, *CreateChatRequest) (*CreateChatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateNewChat not implemented")
 }
 func (UnimplementedChatServiceServer) LoadChatList(context.Context, *ChatListRequest) (*ChatListResponse, error) {
@@ -231,5 +231,5 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "chatstream.proto",
+	Metadata: "datastream/chat/chatstream.proto",
 }

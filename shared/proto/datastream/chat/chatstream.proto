@@ -22,6 +22,7 @@ message MessageTable {
 message ChatInfo{
     uint32 chatID = 1;
     string chatName = 2;
+    uint32 ownerID = 3;
 }
 
 message ChatListRequest {
@@ -44,6 +45,11 @@ message CreateChatRequest {
     string chatName = 2;
 }
 
+message CreateChatResponse {
+    bool status = 1;
+    uint32 chatId = 2;
+}
+
 message OperationStatus {
     bool status = 1;
 }
@@ -52,6 +58,6 @@ service ChatService {
     rpc LoadChatHistory(ChatHistoryRequest) returns (ChatHistoryResponse);
     rpc ProcessMessage(MessageTable) returns (OperationStatus);
 
-    rpc CreateNewChat(CreateChatRequest) returns (OperationStatus);
+    rpc CreateNewChat(CreateChatRequest) returns (CreateChatResponse);
     rpc LoadChatList(ChatListRequest) returns (ChatListResponse);
 }
