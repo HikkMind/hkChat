@@ -20,6 +20,8 @@ export default function ChatListPage({ chats, onSelectChat, onLogout, onCreateCh
     }
   };
 
+  console.log(...chats)
+
   return (
     <div>
       <h2>Список чатов</h2>
@@ -37,7 +39,12 @@ export default function ChatListPage({ chats, onSelectChat, onLogout, onCreateCh
                 backgroundColor: '#f9f9f9'
               }}
             >
-              {chat.chat_name}
+              <span>{chat.chat_name}</span>
+              {chat.owner_name && (
+                <span style={{ color: '#007bff', marginLeft: '5px' }}>
+                  ({chat.owner_name})
+                </span>
+              )}
             </div>
           ))) : (
             <p style={{color: '#888' }}>

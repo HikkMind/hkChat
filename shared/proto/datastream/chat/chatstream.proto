@@ -23,6 +23,7 @@ message ChatInfo{
     uint32 chatID = 1;
     string chatName = 2;
     uint32 ownerID = 3;
+    string ownerName = 4;
 }
 
 message ChatListRequest {

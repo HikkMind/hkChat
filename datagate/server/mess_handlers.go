@@ -72,19 +72,32 @@ func (server *DatabaseServer) LoadChatList(ctx context.Context, request *chatstr
 
 	server.logger.Print("loading chat list...")
 
-	allChats := make([]tables.Chat, 0)
-	result := server.databaseConnection.Table("chats").Find(&allChats)
+	type ChatOwnerTable struct {
+		OwnerName string `gorm:"column:owner_name" json:"owner_name"`
+		tables.Chat
+	}
+
+	allChats := make([]ChatOwnerTable, 0)
+	result := server.databaseConnection.
+		Table("chats").
+		Select("chats.id, chats.name, chats.owner_id, users.username as owner_name").
+		Joins("JOIN users ON users.id = chats.owner_id").
+		Find(&allChats)
 
 	if result.Error != nil {
 		server.logger.Print("failed load chat list : ", result.Error)
 		return nil, result.Error
 	}
 
+	server.logger.Print("all chats: ", allChats)
+
 	response := make([]*chatstream.ChatInfo, len(allChats))
 	for ind, chat := range allChats {
 		response[ind] = &chatstream.ChatInfo{
-			ChatID:   uint32(chat.ID),
-			ChatName: chat.Name,
+			ChatID:    uint32(chat.ID),
+			ChatName:  chat.Name,
+			OwnerID:   uint32(chat.OwnerID),
+			OwnerName: chat.OwnerName,
 		}
 	}
 

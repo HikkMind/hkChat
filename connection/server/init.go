@@ -17,9 +17,17 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+type chatControlInfo struct {
+	ControlChannel chan chat.ControlMessage
+	ChatName       string
+	OwnerID        uint
+	OwnerName      string
+}
+
 type ChatServer struct {
-	chatList     map[uint]chan chat.ControlMessage
-	chatListName map[uint]string
+	chatList map[uint]chatControlInfo
+	// chatList     map[uint]chan chat.ControlMessage
+	// chatListName map[uint]string
 	// chatListChannel chan chatstream.ChatInfo
 	chatListMutex sync.RWMutex
 	logger        *log.Logger
@@ -98,12 +106,14 @@ func (server *ChatServer) loadChatList() {
 	}
 
 	server.logger.Print("loaded chats : ", len(allChats.ChatList))
+	server.logger.Print("chat list: ", allChats)
 
-	server.chatList = make(map[uint]chan chat.ControlMessage)
-	server.chatListName = make(map[uint]string)
+	// server.chatList = make(map[uint]chan chat.ControlMessage)
+	// server.chatListName = make(map[uint]string)
+	server.chatList = make(map[uint]chatControlInfo)
 
 	for _, currentChat := range allChats.ChatList {
-		server.registerNewChat(uint(currentChat.ChatID), currentChat.ChatName)
+		server.registerNewChat(uint(currentChat.ChatID), uint(currentChat.OwnerID), currentChat.ChatName, currentChat.OwnerName)
 	}
 
 	server.logger.Print("start handle all chats")
@@ -121,15 +131,21 @@ func (server *ChatServer) serverVariablesInit() {
 	server.logger.SetPrefix("[ CONNECTION ]")
 }
 
-func (server *ChatServer) registerNewChat(chatID uint, chatName string) {
+func (server *ChatServer) registerNewChat(chatID, ownerId uint, chatName, ownerName string) {
 
 	server.chatListMutex.Lock()
 	defer server.chatListMutex.Unlock()
 
 	chatChannel := make(chan chat.ControlMessage)
 
-	server.chatList[chatID] = chatChannel
-	server.chatListName[chatID] = chatName
+	// server.chatList[chatID] = chatChannel
+	// server.chatListName[chatID] = chatName
+	server.chatList[chatID] = chatControlInfo{
+		ControlChannel: chatChannel,
+		ChatName:       chatName,
+		OwnerID:        ownerId,
+		OwnerName:      ownerName,
+	}
 
 	go chat.HandleChat(chatChannel, chatID)
 }

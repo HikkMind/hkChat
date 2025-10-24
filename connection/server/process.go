@@ -14,8 +14,10 @@ import (
 )
 
 type ChatInfo struct {
-	ChatId   uint   `json:"chat_id"`
-	ChatName string `json:"chat_name"`
+	ChatId    uint   `json:"chat_id"`
+	ChatName  string `json:"chat_name"`
+	OwnerId   uint   `json:"owner_id"`
+	OwnerName string `json:"owner_name"`
 }
 
 type ChatListInfo struct {
@@ -87,10 +89,10 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 func (server *ChatServer) handleUserJoin(websocketConnection **websocket.Conn, chatId uint, currentUser *userInfo) context.CancelFunc {
 	chatContext, chatContextCancel := context.WithCancel(context.Background())
 	outputChannel := make(chan structs.Message)
-	chatChannel, ok := server.chatList[chatId]
+	currentChat, ok := server.chatList[chatId]
 	go server.handleConnectionMessageSending(chatContext, websocketConnection, outputChannel)
 	if ok {
-		chatChannel <- chat.ControlMessage{
+		currentChat.ControlChannel <- chat.ControlMessage{
 			Signal:        chat.Join,
 			UserID:        int(currentUser.UserId),
 			OutputChannel: outputChannel,
@@ -103,7 +105,7 @@ func (server *ChatServer) handleUserJoin(websocketConnection **websocket.Conn, c
 }
 
 func (server *ChatServer) handleUserLeave(chatContextCancel context.CancelFunc, chatId uint, userId int) {
-	server.chatList[chatId] <- chat.ControlMessage{
+	server.chatList[chatId].ControlChannel <- chat.ControlMessage{
 		Signal: chat.Leave,
 		UserID: userId,
 	}
@@ -116,9 +118,9 @@ func (server *ChatServer) handleUserSendMessage(userMessage HandleConnectionMess
 	if len(userMessage.Text) == 0 {
 		return false
 	}
-	chatChannel, ok := server.chatList[uint(userMessage.ChatId)]
+	currentChat, ok := server.chatList[uint(userMessage.ChatId)]
 	if ok {
-		chatChannel <- chat.ControlMessage{
+		currentChat.ControlChannel <- chat.ControlMessage{
 			Signal:   chat.SendMessage,
 			UserID:   int(currentUser.UserId),
 			Username: currentUser.Username,
@@ -132,12 +134,14 @@ func (server *ChatServer) handleUserSendMessage(userMessage HandleConnectionMess
 }
 
 func (server *ChatServer) handleUserGetChats(websocketConnection *websocket.Conn) {
-	allChats := make([]ChatInfo, len(server.chatListName))
+	allChats := make([]ChatInfo, len(server.chatList))
 	ind := 0
-	for chatId, chatName := range server.chatListName {
+	for chatId, currentChat := range server.chatList {
 		allChats[ind] = ChatInfo{
-			ChatId:   chatId,
-			ChatName: chatName,
+			ChatId:    chatId,
+			ChatName:  currentChat.ChatName,
+			OwnerId:   currentChat.OwnerID,
+			OwnerName: currentChat.OwnerName,
 		}
 		ind++
 	}
@@ -182,7 +186,7 @@ func (server *ChatServer) handleCreateChat(currentUser *userInfo, chatName strin
 			chatName, currentUser.Username, currentUser.UserId, err)
 	}
 
-	server.registerNewChat(uint(result.ChatId), chatName)
+	server.registerNewChat(uint(result.ChatId), currentUser.UserId, chatName, currentUser.Username)
 
 	// server.logger.Printf("chat %s created by user %s(%d)\n", chatName, currentUser.Username, currentUser.UserId)
 

@@ -162,6 +162,8 @@ type ChatInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ChatID        uint32                 `protobuf:"varint,1,opt,name=chatID,proto3" json:"chatID,omitempty"`
 	ChatName      string                 `protobuf:"bytes,2,opt,name=chatName,proto3" json:"chatName,omitempty"`
+	OwnerID       uint32                 `protobuf:"varint,3,opt,name=ownerID,proto3" json:"ownerID,omitempty"`
+	OwnerName     string                 `protobuf:"bytes,4,opt,name=ownerName,proto3" json:"ownerName,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -206,6 +208,20 @@ func (x *ChatInfo) GetChatID() uint32 {
 func (x *ChatInfo) GetChatName() string {
 	if x != nil {
 		return x.ChatName
+	}
+	return ""
+}
+
+func (x *ChatInfo) GetOwnerID() uint32 {
+	if x != nil {
+		return x.OwnerID
+	}
+	return 0
+}
+
+func (x *ChatInfo) GetOwnerName() string {
+	if x != nil {
+		return x.OwnerName
 	}
 	return ""
 }
@@ -541,10 +557,12 @@ const file_datastream_chat_chatstream_proto_rawDesc = "" +
 	"\x0esenderUsername\x18\x02 \x01(\tR\x0esenderUsername\x12\x16\n" +
 	"\x06chatID\x18\x03 \x01(\rR\x06chatID\x12\x18\n" +
 	"\aMessage\x18\x04 \x01(\tR\aMessage\x12.\n" +
-	"\x04time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\">\n" +
+	"\x04time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\"v\n" +
 	"\bChatInfo\x12\x16\n" +
 	"\x06chatID\x18\x01 \x01(\rR\x06chatID\x12\x1a\n" +
-	"\bchatName\x18\x02 \x01(\tR\bchatName\"\x11\n" +
+	"\bchatName\x18\x02 \x01(\tR\bchatName\x12\x18\n" +
+	"\aownerID\x18\x03 \x01(\rR\aownerID\x12\x1c\n" +
+	"\townerName\x18\x04 \x01(\tR\townerName\"\x11\n" +
 	"\x0fChatListRequest\"D\n" +
 	"\x10ChatListResponse\x120\n" +
 	"\bChatList\x18\x01 \x03(\v2\x14.chatstream.ChatInfoR\bChatList\",\n" +
