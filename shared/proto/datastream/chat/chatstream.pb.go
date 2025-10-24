@@ -306,27 +306,27 @@ func (x *ChatListResponse) GetChatList() []*ChatInfo {
 	return nil
 }
 
-type ChatHistoryRequest struct {
+type ChatIdRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ChatId        int32                  `protobuf:"varint,1,opt,name=chatId,proto3" json:"chatId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ChatHistoryRequest) Reset() {
-	*x = ChatHistoryRequest{}
+func (x *ChatIdRequest) Reset() {
+	*x = ChatIdRequest{}
 	mi := &file_datastream_chat_chatstream_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ChatHistoryRequest) String() string {
+func (x *ChatIdRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ChatHistoryRequest) ProtoMessage() {}
+func (*ChatIdRequest) ProtoMessage() {}
 
-func (x *ChatHistoryRequest) ProtoReflect() protoreflect.Message {
+func (x *ChatIdRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_datastream_chat_chatstream_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -338,12 +338,12 @@ func (x *ChatHistoryRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ChatHistoryRequest.ProtoReflect.Descriptor instead.
-func (*ChatHistoryRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ChatIdRequest.ProtoReflect.Descriptor instead.
+func (*ChatIdRequest) Descriptor() ([]byte, []int) {
 	return file_datastream_chat_chatstream_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *ChatHistoryRequest) GetChatId() int32 {
+func (x *ChatIdRequest) GetChatId() int32 {
 	if x != nil {
 		return x.ChatId
 	}
@@ -565,8 +565,8 @@ const file_datastream_chat_chatstream_proto_rawDesc = "" +
 	"\townerName\x18\x04 \x01(\tR\townerName\"\x11\n" +
 	"\x0fChatListRequest\"D\n" +
 	"\x10ChatListResponse\x120\n" +
-	"\bChatList\x18\x01 \x03(\v2\x14.chatstream.ChatInfoR\bChatList\",\n" +
-	"\x12ChatHistoryRequest\x12\x16\n" +
+	"\bChatList\x18\x01 \x03(\v2\x14.chatstream.ChatInfoR\bChatList\"'\n" +
+	"\rChatIdRequest\x12\x16\n" +
 	"\x06chatId\x18\x01 \x01(\x05R\x06chatId\"D\n" +
 	"\x13ChatHistoryResponse\x12-\n" +
 	"\ahistory\x18\x01 \x03(\v2\x13.chatstream.MessageR\ahistory\"G\n" +
@@ -577,11 +577,13 @@ const file_datastream_chat_chatstream_proto_rawDesc = "" +
 	"\x06status\x18\x01 \x01(\bR\x06status\x12\x16\n" +
 	"\x06chatId\x18\x02 \x01(\rR\x06chatId\")\n" +
 	"\x0fOperationStatus\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\bR\x06status2\xc5\x02\n" +
-	"\vChatService\x12R\n" +
-	"\x0fLoadChatHistory\x12\x1e.chatstream.ChatHistoryRequest\x1a\x1f.chatstream.ChatHistoryResponse\x12G\n" +
+	"\x06status\x18\x01 \x01(\bR\x06status2\x86\x03\n" +
+	"\vChatService\x12M\n" +
+	"\x0fLoadChatHistory\x12\x19.chatstream.ChatIdRequest\x1a\x1f.chatstream.ChatHistoryResponse\x12G\n" +
 	"\x0eProcessMessage\x12\x18.chatstream.MessageTable\x1a\x1b.chatstream.OperationStatus\x12N\n" +
-	"\rCreateNewChat\x12\x1d.chatstream.CreateChatRequest\x1a\x1e.chatstream.CreateChatResponse\x12I\n" +
+	"\rCreateNewChat\x12\x1d.chatstream.CreateChatRequest\x1a\x1e.chatstream.CreateChatResponse\x12D\n" +
+	"\n" +
+	"DeleteChat\x12\x19.chatstream.ChatIdRequest\x1a\x1b.chatstream.OperationStatus\x12I\n" +
 	"\fLoadChatList\x12\x1b.chatstream.ChatListRequest\x1a\x1c.chatstream.ChatListResponseB\x0eZ\f.;chatstreamb\x06proto3"
 
 var (
@@ -603,7 +605,7 @@ var file_datastream_chat_chatstream_proto_goTypes = []any{
 	(*ChatInfo)(nil),              // 2: chatstream.ChatInfo
 	(*ChatListRequest)(nil),       // 3: chatstream.ChatListRequest
 	(*ChatListResponse)(nil),      // 4: chatstream.ChatListResponse
-	(*ChatHistoryRequest)(nil),    // 5: chatstream.ChatHistoryRequest
+	(*ChatIdRequest)(nil),         // 5: chatstream.ChatIdRequest
 	(*ChatHistoryResponse)(nil),   // 6: chatstream.ChatHistoryResponse
 	(*CreateChatRequest)(nil),     // 7: chatstream.CreateChatRequest
 	(*CreateChatResponse)(nil),    // 8: chatstream.CreateChatResponse
@@ -615,16 +617,18 @@ var file_datastream_chat_chatstream_proto_depIdxs = []int32{
 	10, // 1: chatstream.MessageTable.time:type_name -> google.protobuf.Timestamp
 	2,  // 2: chatstream.ChatListResponse.ChatList:type_name -> chatstream.ChatInfo
 	0,  // 3: chatstream.ChatHistoryResponse.history:type_name -> chatstream.Message
-	5,  // 4: chatstream.ChatService.LoadChatHistory:input_type -> chatstream.ChatHistoryRequest
+	5,  // 4: chatstream.ChatService.LoadChatHistory:input_type -> chatstream.ChatIdRequest
 	1,  // 5: chatstream.ChatService.ProcessMessage:input_type -> chatstream.MessageTable
 	7,  // 6: chatstream.ChatService.CreateNewChat:input_type -> chatstream.CreateChatRequest
-	3,  // 7: chatstream.ChatService.LoadChatList:input_type -> chatstream.ChatListRequest
-	6,  // 8: chatstream.ChatService.LoadChatHistory:output_type -> chatstream.ChatHistoryResponse
-	9,  // 9: chatstream.ChatService.ProcessMessage:output_type -> chatstream.OperationStatus
-	8,  // 10: chatstream.ChatService.CreateNewChat:output_type -> chatstream.CreateChatResponse
-	4,  // 11: chatstream.ChatService.LoadChatList:output_type -> chatstream.ChatListResponse
-	8,  // [8:12] is the sub-list for method output_type
-	4,  // [4:8] is the sub-list for method input_type
+	5,  // 7: chatstream.ChatService.DeleteChat:input_type -> chatstream.ChatIdRequest
+	3,  // 8: chatstream.ChatService.LoadChatList:input_type -> chatstream.ChatListRequest
+	6,  // 9: chatstream.ChatService.LoadChatHistory:output_type -> chatstream.ChatHistoryResponse
+	9,  // 10: chatstream.ChatService.ProcessMessage:output_type -> chatstream.OperationStatus
+	8,  // 11: chatstream.ChatService.CreateNewChat:output_type -> chatstream.CreateChatResponse
+	9,  // 12: chatstream.ChatService.DeleteChat:output_type -> chatstream.OperationStatus
+	4,  // 13: chatstream.ChatService.LoadChatList:output_type -> chatstream.ChatListResponse
+	9,  // [9:14] is the sub-list for method output_type
+	4,  // [4:9] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name

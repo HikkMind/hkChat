@@ -84,7 +84,7 @@ func newChat(chatId uint) *Chat {
 
 func (currentChat *Chat) loadChatHistory() error {
 
-	chatHistory, err := currentChat.databaseClient.LoadChatHistory(context.Background(), &chatstream.ChatHistoryRequest{
+	chatHistory, err := currentChat.databaseClient.LoadChatHistory(context.Background(), &chatstream.ChatIdRequest{
 		ChatId: int32(currentChat.chatId),
 	})
 

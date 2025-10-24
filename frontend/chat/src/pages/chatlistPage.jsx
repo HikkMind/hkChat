@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 
-export default function ChatListPage({ chats, onSelectChat, onLogout, onCreateChat }) {
+export default function ChatListPage({ chats, onSelectChat, onLogout, onChatAction, currentUser }) {
 
   const [chatName, setChatName] = useState('');
 
@@ -10,9 +10,13 @@ export default function ChatListPage({ chats, onSelectChat, onLogout, onCreateCh
       alert('Название чата должно содержать минимум 6 символов');
       return;
     }
-    onCreateChat(chatName.trim());
+    onChatAction(chatName.trim(), 'create_chat');
     setChatName('');
   };
+
+  const handleDelete = (chat_id) => {
+    onChatAction(chat_id, 'delete_chat')
+  }
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
@@ -32,19 +36,57 @@ export default function ChatListPage({ chats, onSelectChat, onLogout, onCreateCh
               key={chat.chat_id}
               onClick={() => onSelectChat(chat)}
               style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 padding: '10px',
                 border: '1px solid #ccc',
                 borderRadius: '8px',
                 cursor: 'pointer',
-                backgroundColor: '#f9f9f9'
+                backgroundColor: '#f9f9f9',
+                position: 'relative',
               }}
             >
-              <span>{chat.chat_name}</span>
-              {chat.owner_name && (
-                <span style={{ color: '#007bff', marginLeft: '5px' }}>
-                  ({chat.owner_name})
-                </span>
-              )}
+              <div 
+                style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                flexGrow: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                }}> 
+                <span>{chat.chat_name}</span>
+                {chat.owner_name && (
+                  <span style={{ color: '#007bff', marginLeft: '5px' }}>
+                    ({chat.owner_name})
+                  </span>
+                )} 
+              </div>
+
+              <button
+              id='delete-btn'
+              onClick={(e) => {
+                e.stopPropagation();
+                if (chat.owner_name === currentUser.username) {
+                  handleDelete(String(chat.chat_id));
+                }
+              }}
+              style={{
+                flexShrink: 0,
+                background: 'transparent',
+                border: 'none',
+                color: '#ff4d4f',
+                fontSize: '18px',
+                cursor: 'pointer',
+                lineHeight: '1',
+                marginLeft: '10px',
+              }}
+              title="Удалить чат"
+            >
+              ✕
+            </button>
             </div>
           ))) : (
             <p style={{color: '#888' }}>

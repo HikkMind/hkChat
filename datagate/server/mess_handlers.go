@@ -9,7 +9,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (server *DatabaseServer) LoadChatHistory(ctx context.Context, request *chatstream.ChatHistoryRequest) (*chatstream.ChatHistoryResponse, error) {
+func (server *DatabaseServer) LoadChatHistory(ctx context.Context, request *chatstream.ChatIdRequest) (*chatstream.ChatHistoryResponse, error) {
 
 	server.logger.Print("loading chat \"", request.ChatId, "\" history...")
 
@@ -122,4 +122,20 @@ func (server *DatabaseServer) CreateNewChat(ctx context.Context, request *chatst
 	server.logger.Printf("chat %s(%d) created by user (%d)\n", request.ChatName, newChat.ID, request.UserId)
 
 	return chatCreateInfo, result.Error
+}
+
+func (server *DatabaseServer) DeleteChat(ctx context.Context, request *chatstream.ChatIdRequest) (*chatstream.OperationStatus, error) {
+	server.logger.Printf("chat deleting %d...\n", request.ChatId)
+
+	result := server.databaseConnection.Table("chats").Delete(&tables.Chat{}, request.ChatId)
+
+	if result.Error == nil {
+		server.logger.Printf("chat %d deleted.\n", request.ChatId)
+	} else {
+		server.logger.Printf("failed delete chat %d\n", request.ChatId)
+	}
+
+	return &chatstream.OperationStatus{
+		Status: result.Error == nil,
+	}, result.Error
 }

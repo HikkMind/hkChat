@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"connection-service/chat"
@@ -40,6 +41,7 @@ const (
 	GetChats       = "get_chats"
 	GetChatHistory = "get_history"
 	CreateChat     = "create_chat"
+	DeleteChat     = "delete_chat"
 )
 
 func (server *ChatServer) handleUserConnection(connection *websocket.Conn, currentUser *userInfo) {
@@ -81,7 +83,10 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 			server.handleUserGetChats(connection)
 		case CreateChat:
 			server.handleCreateChat(currentUser, message.Text)
-			// server.logger.Print("user ", currentUser.UserId, " ", currentUser.Username, " creating chat ", message.Text)
+		case DeleteChat:
+			server.handleDeleteChat(currentUser, message.Text)
+		default:
+			server.logger.Print("unknown intent : ", message)
 		}
 	}
 }
@@ -190,6 +195,28 @@ func (server *ChatServer) handleCreateChat(currentUser *userInfo, chatName strin
 
 	// server.logger.Printf("chat %s created by user %s(%d)\n", chatName, currentUser.Username, currentUser.UserId)
 
+}
+
+func (server *ChatServer) handleDeleteChat(currentUser *userInfo, stringChatId string) {
+
+	chatId, err := strconv.Atoi(stringChatId)
+	if err != nil {
+		server.logger.Print("failed convert chat id for delete : ", stringChatId)
+		return
+	}
+
+	if server.chatList[uint(chatId)].OwnerID != currentUser.UserId {
+		server.logger.Printf("wrong chat owner : %s doesnt owns %s\n", currentUser.Username, stringChatId)
+		return
+	}
+
+	opStatus, _ := server.messageDatabaseClient.DeleteChat(context.Background(), &chatstream.ChatIdRequest{ChatId: int32(chatId)})
+	if opStatus.Status {
+		server.chatListMutex.Lock()
+		delete(server.chatList, uint(chatId))
+		server.chatListMutex.Unlock()
+	}
+	// server.logger.Printf("user %s deleting chat %s\n", currentUser.Username, stringChatId)
 }
 
 func (server *ChatServer) newWebsocketConnection(responseWriter http.ResponseWriter, request *http.Request) (*userInfo, *websocket.Conn) {

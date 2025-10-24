@@ -33,7 +33,7 @@ message ChatListResponse {
     repeated ChatInfo ChatList = 1;
 }
 
-message ChatHistoryRequest {
+message ChatIdRequest {
     int32 chatId = 1;
 }
 
@@ -56,9 +56,10 @@ message OperationStatus {
 }
 
 service ChatService {
-    rpc LoadChatHistory(ChatHistoryRequest) returns (ChatHistoryResponse);
+    rpc LoadChatHistory(ChatIdRequest) returns (ChatHistoryResponse);
     rpc ProcessMessage(MessageTable) returns (OperationStatus);
 
     rpc CreateNewChat(CreateChatRequest) returns (CreateChatResponse);
+    rpc DeleteChat(ChatIdRequest) returns(OperationStatus);
     rpc LoadChatList(ChatListRequest) returns (ChatListResponse);
 }

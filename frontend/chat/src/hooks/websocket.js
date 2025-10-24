@@ -91,7 +91,9 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
 
   const sendMessage = (msgObj) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify(msgObj));
+      const msg = JSON.stringify(msgObj)
+      console.log("message: ", msg)
+      socketRef.current.send(msg);
     }
   };
 

@@ -110,19 +110,22 @@ function App() {
     localStorage.removeItem('username');
   };
 
-  const createChat = (name) => {
+  const chatAction = (name, action) => {
     const text = name.trim()
-    if (!text || text.length < 6) {
-      return
+    if (action == 'create_chat'){
+      if (!text || text.length < 6) {
+        return
+      }
     }
 
     const msgObj = {
-      intent: 'create_chat',
+      intent: action,
       text: text
     };
+
+    console.log(action, ' : ', name)
     
     sendMessage(msgObj);
-
   }
 
 
@@ -141,7 +144,8 @@ function App() {
         chats={chats}
         onSelectChat={joinChat}
         onLogout={logout}
-        onCreateChat={createChat}
+        onChatAction={chatAction}
+        currentUser={currentUser}
       />
     );
   }

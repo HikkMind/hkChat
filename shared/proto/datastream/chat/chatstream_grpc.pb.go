@@ -22,6 +22,7 @@ const (
 	ChatService_LoadChatHistory_FullMethodName = "/chatstream.ChatService/LoadChatHistory"
 	ChatService_ProcessMessage_FullMethodName  = "/chatstream.ChatService/ProcessMessage"
 	ChatService_CreateNewChat_FullMethodName   = "/chatstream.ChatService/CreateNewChat"
+	ChatService_DeleteChat_FullMethodName      = "/chatstream.ChatService/DeleteChat"
 	ChatService_LoadChatList_FullMethodName    = "/chatstream.ChatService/LoadChatList"
 )
 
@@ -29,9 +30,10 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChatServiceClient interface {
-	LoadChatHistory(ctx context.Context, in *ChatHistoryRequest, opts ...grpc.CallOption) (*ChatHistoryResponse, error)
+	LoadChatHistory(ctx context.Context, in *ChatIdRequest, opts ...grpc.CallOption) (*ChatHistoryResponse, error)
 	ProcessMessage(ctx context.Context, in *MessageTable, opts ...grpc.CallOption) (*OperationStatus, error)
 	CreateNewChat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*CreateChatResponse, error)
+	DeleteChat(ctx context.Context, in *ChatIdRequest, opts ...grpc.CallOption) (*OperationStatus, error)
 	LoadChatList(ctx context.Context, in *ChatListRequest, opts ...grpc.CallOption) (*ChatListResponse, error)
 }
 
@@ -43,7 +45,7 @@ func NewChatServiceClient(cc grpc.ClientConnInterface) ChatServiceClient {
 	return &chatServiceClient{cc}
 }
 
-func (c *chatServiceClient) LoadChatHistory(ctx context.Context, in *ChatHistoryRequest, opts ...grpc.CallOption) (*ChatHistoryResponse, error) {
+func (c *chatServiceClient) LoadChatHistory(ctx context.Context, in *ChatIdRequest, opts ...grpc.CallOption) (*ChatHistoryResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ChatHistoryResponse)
 	err := c.cc.Invoke(ctx, ChatService_LoadChatHistory_FullMethodName, in, out, cOpts...)
@@ -73,6 +75,16 @@ func (c *chatServiceClient) CreateNewChat(ctx context.Context, in *CreateChatReq
 	return out, nil
 }
 
+func (c *chatServiceClient) DeleteChat(ctx context.Context, in *ChatIdRequest, opts ...grpc.CallOption) (*OperationStatus, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OperationStatus)
+	err := c.cc.Invoke(ctx, ChatService_DeleteChat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *chatServiceClient) LoadChatList(ctx context.Context, in *ChatListRequest, opts ...grpc.CallOption) (*ChatListResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ChatListResponse)
@@ -87,9 +99,10 @@ func (c *chatServiceClient) LoadChatList(ctx context.Context, in *ChatListReques
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility.
 type ChatServiceServer interface {
-	LoadChatHistory(context.Context, *ChatHistoryRequest) (*ChatHistoryResponse, error)
+	LoadChatHistory(context.Context, *ChatIdRequest) (*ChatHistoryResponse, error)
 	ProcessMessage(context.Context, *MessageTable) (*OperationStatus, error)
 	CreateNewChat(context.Context, *CreateChatRequest) (*CreateChatResponse, error)
+	DeleteChat(context.Context, *ChatIdRequest) (*OperationStatus, error)
 	LoadChatList(context.Context, *ChatListRequest) (*ChatListResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
@@ -101,7 +114,7 @@ type ChatServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedChatServiceServer struct{}
 
-func (UnimplementedChatServiceServer) LoadChatHistory(context.Context, *ChatHistoryRequest) (*ChatHistoryResponse, error) {
+func (UnimplementedChatServiceServer) LoadChatHistory(context.Context, *ChatIdRequest) (*ChatHistoryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LoadChatHistory not implemented")
 }
 func (UnimplementedChatServiceServer) ProcessMessage(context.Context, *MessageTable) (*OperationStatus, error) {
@@ -109,6 +122,9 @@ func (UnimplementedChatServiceServer) ProcessMessage(context.Context, *MessageTa
 }
 func (UnimplementedChatServiceServer) CreateNewChat(context.Context, *CreateChatRequest) (*CreateChatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateNewChat not implemented")
+}
+func (UnimplementedChatServiceServer) DeleteChat(context.Context, *ChatIdRequest) (*OperationStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteChat not implemented")
 }
 func (UnimplementedChatServiceServer) LoadChatList(context.Context, *ChatListRequest) (*ChatListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LoadChatList not implemented")
@@ -135,7 +151,7 @@ func RegisterChatServiceServer(s grpc.ServiceRegistrar, srv ChatServiceServer) {
 }
 
 func _ChatService_LoadChatHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ChatHistoryRequest)
+	in := new(ChatIdRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -147,7 +163,7 @@ func _ChatService_LoadChatHistory_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: ChatService_LoadChatHistory_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServiceServer).LoadChatHistory(ctx, req.(*ChatHistoryRequest))
+		return srv.(ChatServiceServer).LoadChatHistory(ctx, req.(*ChatIdRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -188,6 +204,24 @@ func _ChatService_CreateNewChat_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatService_DeleteChat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChatIdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).DeleteChat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_DeleteChat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).DeleteChat(ctx, req.(*ChatIdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ChatService_LoadChatList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ChatListRequest)
 	if err := dec(in); err != nil {
@@ -224,6 +258,10 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateNewChat",
 			Handler:    _ChatService_CreateNewChat_Handler,
+		},
+		{
+			MethodName: "DeleteChat",
+			Handler:    _ChatService_DeleteChat_Handler,
 		},
 		{
 			MethodName: "LoadChatList",
