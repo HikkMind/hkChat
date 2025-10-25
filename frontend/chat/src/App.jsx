@@ -110,6 +110,24 @@ function App() {
     localStorage.removeItem('username');
   };
 
+  const chatAction = (name, action) => {
+    const text = name.trim()
+    if (action == 'create_chat'){
+      if (!text || text.length < 6) {
+        return
+      }
+    }
+
+    const msgObj = {
+      intent: action,
+      text: text
+    };
+
+    console.log(action, ' : ', name)
+    
+    sendMessage(msgObj);
+  }
+
 
   if (page === routes.login) {
     return <LoginPage onLogin={login} onShowRegister={() => setPage(routes.register)} />;
@@ -126,6 +144,8 @@ function App() {
         chats={chats}
         onSelectChat={joinChat}
         onLogout={logout}
+        onChatAction={chatAction}
+        currentUser={currentUser}
       />
     );
   }

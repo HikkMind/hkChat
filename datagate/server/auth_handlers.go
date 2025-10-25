@@ -56,11 +56,9 @@ func (server *DatabaseServer) UnsetRefreshToken(ctx context.Context, request *au
 }
 
 func (server *DatabaseServer) FindRefreshToken(ctx context.Context, request *authstream.UserRefreshTokenRequest) (*authstream.UserRefreshTokenResponse, error) {
+
 	server.logger.Print("search refresh token...")
 
-	// if server.redisConnection == nil {
-	// 	server.logger.Fatal("redis connection is nil pointer")
-	// }
 	exists, err := server.redisConnection.Exists(server.redisContext, request.RefreshToken).Result()
 
 	if err != nil || exists == 0 {

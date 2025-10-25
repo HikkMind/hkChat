@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 
 	"connection-service/chat"
 
@@ -16,11 +17,20 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+type chatControlInfo struct {
+	ControlChannel chan chat.ControlMessage
+	ChatName       string
+	OwnerID        uint
+	OwnerName      string
+}
+
 type ChatServer struct {
-	// database     *gorm.DB
-	chatList     map[uint]chan chat.ControlMessage
-	chatListName map[uint]string
-	logger       *log.Logger
+	chatList map[uint]chatControlInfo
+	// chatList     map[uint]chan chat.ControlMessage
+	// chatListName map[uint]string
+	// chatListChannel chan chatstream.ChatInfo
+	chatListMutex sync.RWMutex
+	logger        *log.Logger
 
 	serverPort   string
 	datagatePort string
@@ -64,19 +74,6 @@ func (server *ChatServer) StartServer() {
 
 }
 
-// func (server *ChatServer) databaseInit() {
-// 	dsn := os.Getenv("DB_CONFIG")
-// 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-// 	if err != nil {
-// 		log.Fatal("failed to connect:", err)
-// 	}
-// 	if err := db.AutoMigrate(&tables.User{}, &tables.Chat{}, &tables.Message{}); err != nil {
-// 		log.Fatal("migration failed:", err)
-// 	}
-// 	server.database = db
-// 	fmt.Println("connected to database")
-// }
-
 func (server *ChatServer) grpcAuthInit() {
 	tokenConnection, err := grpc.NewClient("auth"+server.authPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -98,8 +95,6 @@ func (server *ChatServer) grpcDatagateInit() {
 }
 
 func (server *ChatServer) loadChatList() {
-	// allChats := make([]tables.Chat, 0)
-	// server.database.Table("chats").Find(&allChats)
 
 	server.logger.Print("loading chat list...")
 
@@ -111,17 +106,14 @@ func (server *ChatServer) loadChatList() {
 	}
 
 	server.logger.Print("loaded chats : ", len(allChats.ChatList))
+	server.logger.Print("chat list: ", allChats)
 
-	server.chatList = make(map[uint]chan chat.ControlMessage)
-	server.chatListName = make(map[uint]string)
+	// server.chatList = make(map[uint]chan chat.ControlMessage)
+	// server.chatListName = make(map[uint]string)
+	server.chatList = make(map[uint]chatControlInfo)
 
 	for _, currentChat := range allChats.ChatList {
-		chatChannel := make(chan chat.ControlMessage)
-
-		server.chatList[uint(currentChat.ChatID)] = chatChannel
-		server.chatListName[uint(currentChat.ChatID)] = currentChat.ChatName
-
-		go chat.HandleChat(chatChannel, uint(currentChat.ChatID))
+		server.registerNewChat(uint(currentChat.ChatID), uint(currentChat.OwnerID), currentChat.ChatName, currentChat.OwnerName)
 	}
 
 	server.logger.Print("start handle all chats")
@@ -133,6 +125,27 @@ func (server *ChatServer) serverVariablesInit() {
 	server.authPort = ":" + os.Getenv("AUTH_GRPC_PORT")
 	server.datagatePort = ":" + os.Getenv("DATAGATE_GRPC_PORT")
 
+	// server.chatListChannel = make(chan chatstream.ChatInfo)
+
 	server.logger = log.Default()
 	server.logger.SetPrefix("[ CONNECTION ]")
+}
+
+func (server *ChatServer) registerNewChat(chatID, ownerId uint, chatName, ownerName string) {
+
+	server.chatListMutex.Lock()
+	defer server.chatListMutex.Unlock()
+
+	chatChannel := make(chan chat.ControlMessage)
+
+	// server.chatList[chatID] = chatChannel
+	// server.chatListName[chatID] = chatName
+	server.chatList[chatID] = chatControlInfo{
+		ControlChannel: chatChannel,
+		ChatName:       chatName,
+		OwnerID:        ownerId,
+		OwnerName:      ownerName,
+	}
+
+	go chat.HandleChat(chatChannel, chatID)
 }

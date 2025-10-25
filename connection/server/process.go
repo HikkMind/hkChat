@@ -4,17 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"connection-service/chat"
+	chatstream "hkchat/proto/datastream/chat"
 	"hkchat/structs"
 
 	"github.com/gorilla/websocket"
 )
 
 type ChatInfo struct {
-	ChatId   uint   `json:"chat_id"`
-	ChatName string `json:"chat_name"`
+	ChatId    uint   `json:"chat_id"`
+	ChatName  string `json:"chat_name"`
+	OwnerId   uint   `json:"owner_id"`
+	OwnerName string `json:"owner_name"`
 }
 
 type ChatListInfo struct {
@@ -36,6 +40,8 @@ const (
 	SendMessage    = "send_message"
 	GetChats       = "get_chats"
 	GetChatHistory = "get_history"
+	CreateChat     = "create_chat"
+	DeleteChat     = "delete_chat"
 )
 
 func (server *ChatServer) handleUserConnection(connection *websocket.Conn, currentUser *userInfo) {
@@ -64,18 +70,23 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 		json.Unmarshal(msg, &message)
 		server.logger.Print("new chat signal : ", message)
 
-		if message.Intent == JoinChat {
+		switch message.Intent {
+		case JoinChat:
 			sendingContextCancel = server.handleUserJoin(&connection, uint(message.ChatId), currentUser)
 			server.logger.Print("joined user {", currentUser.Username, "}")
-
-		} else if message.Intent == LeaveChat {
+		case LeaveChat:
 			server.handleUserLeave(sendingContextCancel, uint(message.ChatId), int(currentUser.UserId))
 			server.logger.Print("leaved user {", currentUser.Username, "}")
-
-		} else if message.Intent == SendMessage {
+		case SendMessage:
 			server.handleUserSendMessage(message, currentUser)
-		} else if message.Intent == GetChats {
+		case GetChats:
 			server.handleUserGetChats(connection)
+		case CreateChat:
+			server.handleCreateChat(currentUser, message.Text)
+		case DeleteChat:
+			server.handleDeleteChat(currentUser, message.Text)
+		default:
+			server.logger.Print("unknown intent : ", message)
 		}
 	}
 }
@@ -83,10 +94,10 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 func (server *ChatServer) handleUserJoin(websocketConnection **websocket.Conn, chatId uint, currentUser *userInfo) context.CancelFunc {
 	chatContext, chatContextCancel := context.WithCancel(context.Background())
 	outputChannel := make(chan structs.Message)
-	chatChannel, ok := server.chatList[chatId]
+	currentChat, ok := server.chatList[chatId]
 	go server.handleConnectionMessageSending(chatContext, websocketConnection, outputChannel)
 	if ok {
-		chatChannel <- chat.ControlMessage{
+		currentChat.ControlChannel <- chat.ControlMessage{
 			Signal:        chat.Join,
 			UserID:        int(currentUser.UserId),
 			OutputChannel: outputChannel,
@@ -99,7 +110,7 @@ func (server *ChatServer) handleUserJoin(websocketConnection **websocket.Conn, c
 }
 
 func (server *ChatServer) handleUserLeave(chatContextCancel context.CancelFunc, chatId uint, userId int) {
-	server.chatList[chatId] <- chat.ControlMessage{
+	server.chatList[chatId].ControlChannel <- chat.ControlMessage{
 		Signal: chat.Leave,
 		UserID: userId,
 	}
@@ -112,9 +123,9 @@ func (server *ChatServer) handleUserSendMessage(userMessage HandleConnectionMess
 	if len(userMessage.Text) == 0 {
 		return false
 	}
-	chatChannel, ok := server.chatList[uint(userMessage.ChatId)]
+	currentChat, ok := server.chatList[uint(userMessage.ChatId)]
 	if ok {
-		chatChannel <- chat.ControlMessage{
+		currentChat.ControlChannel <- chat.ControlMessage{
 			Signal:   chat.SendMessage,
 			UserID:   int(currentUser.UserId),
 			Username: currentUser.Username,
@@ -128,12 +139,14 @@ func (server *ChatServer) handleUserSendMessage(userMessage HandleConnectionMess
 }
 
 func (server *ChatServer) handleUserGetChats(websocketConnection *websocket.Conn) {
-	allChats := make([]ChatInfo, len(server.chatListName))
+	allChats := make([]ChatInfo, len(server.chatList))
 	ind := 0
-	for chatId, chatName := range server.chatListName {
+	for chatId, currentChat := range server.chatList {
 		allChats[ind] = ChatInfo{
-			ChatId:   chatId,
-			ChatName: chatName,
+			ChatId:    chatId,
+			ChatName:  currentChat.ChatName,
+			OwnerId:   currentChat.OwnerID,
+			OwnerName: currentChat.OwnerName,
 		}
 		ind++
 	}
@@ -164,6 +177,46 @@ func (server *ChatServer) handleConnectionMessageSending(ctx context.Context, co
 			}
 		}
 	}
+}
+
+func (server *ChatServer) handleCreateChat(currentUser *userInfo, chatName string) {
+
+	result, err := server.messageDatabaseClient.CreateNewChat(context.Background(), &chatstream.CreateChatRequest{
+		UserId:   uint32(currentUser.UserId),
+		ChatName: chatName,
+	})
+
+	if err != nil || !result.Status {
+		server.logger.Printf("failed create chat %s by user %s(%d)\n : %s",
+			chatName, currentUser.Username, currentUser.UserId, err)
+	}
+
+	server.registerNewChat(uint(result.ChatId), currentUser.UserId, chatName, currentUser.Username)
+
+	// server.logger.Printf("chat %s created by user %s(%d)\n", chatName, currentUser.Username, currentUser.UserId)
+
+}
+
+func (server *ChatServer) handleDeleteChat(currentUser *userInfo, stringChatId string) {
+
+	chatId, err := strconv.Atoi(stringChatId)
+	if err != nil {
+		server.logger.Print("failed convert chat id for delete : ", stringChatId)
+		return
+	}
+
+	if server.chatList[uint(chatId)].OwnerID != currentUser.UserId {
+		server.logger.Printf("wrong chat owner : %s doesnt owns %s\n", currentUser.Username, stringChatId)
+		return
+	}
+
+	opStatus, _ := server.messageDatabaseClient.DeleteChat(context.Background(), &chatstream.ChatIdRequest{ChatId: int32(chatId)})
+	if opStatus.Status {
+		server.chatListMutex.Lock()
+		delete(server.chatList, uint(chatId))
+		server.chatListMutex.Unlock()
+	}
+	// server.logger.Printf("user %s deleting chat %s\n", currentUser.Username, stringChatId)
 }
 
 func (server *ChatServer) newWebsocketConnection(responseWriter http.ResponseWriter, request *http.Request) (*userInfo, *websocket.Conn) {

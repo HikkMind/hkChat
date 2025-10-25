@@ -6,10 +6,10 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/golang-jwt/jwt/v5"
-	// tokenverify "github.com/hikkmind/chat-proto"
 	authstream "hkchat/proto/datastream/auth"
 	tokenverify "hkchat/proto/tokenverify"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func (server *AuthServer) authCheckToken(responseWriter http.ResponseWriter, request *http.Request) {
@@ -29,7 +29,6 @@ func (server *AuthServer) authCheckToken(responseWriter http.ResponseWriter, req
 	parsedAccessToken, err := jwt.ParseWithClaims(accessToken, &claims, checkAccessTokenMethod)
 	if err != nil || !parsedAccessToken.Valid {
 		http.Error(responseWriter, "invalid auth token", http.StatusUnauthorized)
-		// server.redisDatabase.Del(server.redisContext, accessToken)
 		server.logger.Print("invalid access token (check token)")
 		return
 	}
@@ -78,7 +77,6 @@ func (server *AuthServer) verifyAccessToken(responseWriter http.ResponseWriter, 
 	}
 
 	server.logger.Print("try get " + "refresh:" + refreshCookie.Value)
-	// exists, err := server.redisDatabase.Exists(server.redisContext, "refresh:"+refreshCookie.Value).Result()
 	exists, err := server.databaseClient.FindRefreshToken(context.Background(), &authstream.UserRefreshTokenRequest{
 		RefreshToken: "refresh:" + refreshCookie.Value,
 	})
@@ -124,10 +122,6 @@ func (server *AuthServer) VerifyToken(ctx context.Context, request *tokenverify.
 	var claims Claims
 	parsedAccessToken, err := jwt.ParseWithClaims(accessToken, &claims, checkAccessTokenMethod)
 	if err != nil || !parsedAccessToken.Valid {
-		// server.redisDatabase.Del(server.redisContext, accessToken)
-		// server.databaseClient.UnsetToken(context.Background(), &authstream.UserTokenRequest{=
-		// 	Token: accessToken,
-		// })
 		server.logger.Print("invalid access token (check token)")
 		return nil, errors.New("invalid access token (check token)")
 	}

@@ -68,10 +68,8 @@ func newChat(chatId uint) *Chat {
 	self.messageChannel = make(chan tables.Message)
 	self.messages = make([]structs.Message, 0)
 	self.chatId = chatId
-	// self.database = database
 	self.logger = log.Default()
 	self.logger.SetPrefix("[ CHAT ]")
-	// self.databaseInit()
 	self.datagateGrpcConnectionInit()
 
 	err := self.loadChatHistory()
@@ -85,15 +83,8 @@ func newChat(chatId uint) *Chat {
 }
 
 func (currentChat *Chat) loadChatHistory() error {
-	// result := currentChat.database.
-	// 	Table("messages").
-	// 	Select("messages.*, users.username").
-	// 	Joins("JOIN users ON users.id = messages.sender_id").
-	// 	Where("messages.chat_id = ?", currentChat.chatId).
-	// 	Order("messages.created_at ASC").
-	// 	Find(&currentChat.messages)
 
-	chatHistory, err := currentChat.databaseClient.LoadChatHistory(context.Background(), &chatstream.ChatHistoryRequest{
+	chatHistory, err := currentChat.databaseClient.LoadChatHistory(context.Background(), &chatstream.ChatIdRequest{
 		ChatId: int32(currentChat.chatId),
 	})
 
@@ -117,16 +108,6 @@ func (currentChat *Chat) loadChatHistory() error {
 
 	return err
 }
-
-// func (currentChat *Chat) databaseInit() {
-// 	_, err := grpc.NewClient("datagate"+datagatePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
-// 	if err != nil {
-// 		server.logger.Print("failed check auth token : ", err)
-// 		return
-// 	}
-// 	server.databaseClient = authstream.NewUserDataServiceClient(tokenConnection)
-// 	server.logger.Print("connected to grpc server")
-// }
 
 func (currentChat *Chat) datagateGrpcConnectionInit() {
 	datagatePort := ":" + os.Getenv("DATAGATE_GRPC_PORT")

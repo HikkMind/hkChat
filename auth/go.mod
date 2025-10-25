@@ -7,7 +7,6 @@ require (
 	google.golang.org/grpc v1.75.0
 	hkchat/proto/datastream v0.0.0
 	hkchat/proto/tokenverify v0.0.0
-	hkchat/tables v0.0.0
 )
 
 require (
