@@ -42,6 +42,13 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
           onChatsReceived(msg.chat_list);
         } else if (msg.intent === 'send_message') {
           onMessageReceived(msg);
+        } else if (msg.intent === 'create_chat') {
+          // console.log('creating chat: ', msg)
+          onChatsReceived(prev => [...prev, msg.chat_info]);
+        }else if (msg.intent === 'delete_chat') {
+          // console.log('deleting chat: ', msg);
+          onChatsReceived(prev => prev.filter(c => c.chat_id !== msg.chat_info.chat_id));
+          // console.log('deleted chat: ', msg);
         }
       };
 
@@ -69,10 +76,10 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
       const sendJoin = () => socketRef.current.send(joinMessage);
 
       if (socketRef.current.readyState === WebSocket.OPEN) {
-        console.log("send join to chat : ", selectedChat)
+        // console.log("send join to chat : ", selectedChat)
         sendJoin();
       } else {
-        console.log("add event for chat : ", selectedChat)
+        // console.log("add event for chat : ", selectedChat)
         socketRef.current.addEventListener('open', sendJoin, { once: true });
       }
 
@@ -92,7 +99,7 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
   const sendMessage = (msgObj) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       const msg = JSON.stringify(msgObj)
-      console.log("message: ", msg)
+      // console.log("message: ", msg)
       socketRef.current.send(msg);
     }
   };

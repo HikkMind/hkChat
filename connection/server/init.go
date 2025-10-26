@@ -24,20 +24,33 @@ type chatControlInfo struct {
 	OwnerName      string
 }
 
+type ChatListSignal struct {
+	Intent         string   `json:"intent"`
+	ChatParameters ChatInfo `json:"chat_info"`
+	// ChatId uint   `json:"chat_id"`
+}
+
 type ChatServer struct {
 	chatList map[uint]chatControlInfo
 	// chatList     map[uint]chan chat.ControlMessage
 	// chatListName map[uint]string
 	// chatListChannel chan chatstream.ChatInfo
 	chatListMutex sync.RWMutex
-	logger        *log.Logger
+
+	userChatSignal          map[uint]chan ChatListSignal
+	serverChatSignalChannel chan ChatListSignal
+	userChatSignalMutex     sync.RWMutex
+
+	logger *log.Logger
 
 	serverPort   string
 	datagatePort string
 	authPort     string
 
-	authTokenClient       tokenverify.AuthServiceClient
-	messageDatabaseClient chatstream.ChatServiceClient
+	authTokenClient         tokenverify.AuthServiceClient
+	messageDatabaseClient   chatstream.ChatServiceClient
+	chatGlobalContext       context.Context
+	chatGlobalContextCancel context.CancelFunc
 }
 
 type HandleConnectionMessage struct {
@@ -69,8 +82,11 @@ func (server *ChatServer) StartServer() {
 	server.grpcAuthInit()
 
 	server.loadChatList()
+	go server.startHandleChatSignal()
 
 	serverHTTP.ListenAndServe()
+
+	server.logger.Print("server stopped")
 
 }
 
@@ -126,6 +142,10 @@ func (server *ChatServer) serverVariablesInit() {
 	server.datagatePort = ":" + os.Getenv("DATAGATE_GRPC_PORT")
 
 	// server.chatListChannel = make(chan chatstream.ChatInfo)
+	server.userChatSignal = make(map[uint]chan ChatListSignal)
+	server.serverChatSignalChannel = make(chan ChatListSignal)
+
+	server.chatGlobalContext, server.chatGlobalContextCancel = context.WithCancel(context.Background())
 
 	server.logger = log.Default()
 	server.logger.SetPrefix("[ CONNECTION ]")
@@ -148,4 +168,19 @@ func (server *ChatServer) registerNewChat(chatID, ownerId uint, chatName, ownerN
 	}
 
 	go chat.HandleChat(chatChannel, chatID)
+}
+
+func (server *ChatServer) startHandleChatSignal() {
+	for {
+		select {
+		case <-server.chatGlobalContext.Done():
+			return
+		case chatSignal := <-server.serverChatSignalChannel:
+			server.userChatSignalMutex.RLock()
+			for _, signalChannel := range server.userChatSignal {
+				signalChannel <- chatSignal
+			}
+			server.userChatSignalMutex.RUnlock()
+		}
+	}
 }

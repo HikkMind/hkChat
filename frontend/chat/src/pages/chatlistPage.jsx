@@ -24,7 +24,7 @@ export default function ChatListPage({ chats, onSelectChat, onLogout, onChatActi
     }
   };
 
-  console.log(...chats)
+  // console.log(...chats)
 
   return (
     <div>
