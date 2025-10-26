@@ -28,7 +28,13 @@ func (server *ChatServer) connectUser(responseWriter http.ResponseWriter, reques
 		return
 	}
 
+	newChatSignalChannel := make(chan ChatListSignal)
+	server.userChatSignalMutex.Lock()
+	server.userChatSignal[currentUser.UserId] = newChatSignalChannel
+	server.userChatSignalMutex.Unlock()
+
 	server.logger.Print("handle new user : ", currentUser.Username)
+	go server.receiveChatSignal(websocketConnection, newChatSignalChannel)
 	go server.handleUserConnection(websocketConnection, currentUser)
 }
 

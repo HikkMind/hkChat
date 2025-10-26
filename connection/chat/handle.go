@@ -24,7 +24,8 @@ func HandleChat(signalChannel <-chan ControlMessage, chatId uint) {
 
 		currentChat.logger.Print("new signal in chat : ", chatId, ": ", signal)
 
-		if signal.Signal == Join {
+		switch signal.Signal {
+		case Join:
 			currentChat.userMutex.Lock()
 			currentChat.userChannelList[signal.UserID] = signal.OutputChannel
 			currentChat.messageMutex.RLock()
@@ -34,14 +35,12 @@ func HandleChat(signalChannel <-chan ControlMessage, chatId uint) {
 			currentChat.messageMutex.RUnlock()
 			currentChat.userMutex.Unlock()
 			currentChat.logger.Print("user joined : ", signal.Username)
-
-		} else if signal.Signal == Leave {
+		case Leave:
 			currentChat.userMutex.Lock()
 			delete(currentChat.userChannelList, signal.UserID)
 			currentChat.userMutex.Unlock()
 			currentChat.logger.Print("user leaved : ", signal.Username)
-
-		} else if signal.Signal == SendMessage {
+		case SendMessage:
 			currentChat.logger.Print("start process message in channel")
 			currentChat.messageChannel <- tables.Message{
 				SenderID:       uint(signal.UserID),

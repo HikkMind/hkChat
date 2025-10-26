@@ -21,6 +21,8 @@ const (
 	Join ChatSignal = iota
 	Leave
 	SendMessage
+	CreateChat
+	DeleteChat
 )
 
 type ControlMessage struct {
@@ -49,6 +51,7 @@ type Chat struct {
 	userChannelList map[int]chan structs.Message
 	messages        []structs.Message
 	messageChannel  chan tables.Message
+	// chatActionChannel chan ChatListSignal
 
 	userMutex    sync.RWMutex
 	messageMutex sync.RWMutex
@@ -66,6 +69,7 @@ func newChat(chatId uint) *Chat {
 	var self Chat
 	self.userChannelList = make(map[int]chan structs.Message)
 	self.messageChannel = make(chan tables.Message)
+	// self.chatActionChannel = make(chan ChatListSignal)
 	self.messages = make([]structs.Message, 0)
 	self.chatId = chatId
 	self.logger = log.Default()

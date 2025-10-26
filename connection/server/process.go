@@ -84,7 +84,7 @@ func (server *ChatServer) handleUserConnection(connection *websocket.Conn, curre
 		case CreateChat:
 			server.handleCreateChat(currentUser, message.Text)
 		case DeleteChat:
-			server.handleDeleteChat(currentUser, message.Text)
+			go server.handleDeleteChat(currentUser, message.Text)
 		default:
 			server.logger.Print("unknown intent : ", message)
 		}
@@ -192,7 +192,15 @@ func (server *ChatServer) handleCreateChat(currentUser *userInfo, chatName strin
 	}
 
 	server.registerNewChat(uint(result.ChatId), currentUser.UserId, chatName, currentUser.Username)
-
+	server.serverChatSignalChannel <- ChatListSignal{
+		Intent: CreateChat,
+		ChatParameters: ChatInfo{
+			ChatId:    uint(result.ChatId),
+			ChatName:  chatName,
+			OwnerId:   currentUser.UserId,
+			OwnerName: currentUser.Username,
+		},
+	}
 	// server.logger.Printf("chat %s created by user %s(%d)\n", chatName, currentUser.Username, currentUser.UserId)
 
 }
@@ -210,13 +218,41 @@ func (server *ChatServer) handleDeleteChat(currentUser *userInfo, stringChatId s
 		return
 	}
 
-	opStatus, _ := server.messageDatabaseClient.DeleteChat(context.Background(), &chatstream.ChatIdRequest{ChatId: int32(chatId)})
-	if opStatus.Status {
-		server.chatListMutex.Lock()
-		delete(server.chatList, uint(chatId))
-		server.chatListMutex.Unlock()
+	opStatus, err := server.messageDatabaseClient.DeleteChat(context.Background(), &chatstream.ChatIdRequest{ChatId: int32(chatId)})
+	if !opStatus.Status {
+		server.logger.Printf("failed delete chat (%d) : %s", chatId, err)
+		return
 	}
+
+	server.chatListMutex.Lock()
+	delete(server.chatList, uint(chatId))
+	server.chatListMutex.Unlock()
+	server.serverChatSignalChannel <- ChatListSignal{
+		Intent: DeleteChat,
+		ChatParameters: ChatInfo{
+			ChatId: uint(chatId),
+		},
+	}
+
+	// for _, currentChat := range server.chatList {
+	// 	currentChat.ControlChannel <- chat.ControlMessage{
+	// 		Signal: chat.DeleteChat,
+	// 		ChatID: chatId,
+	// 	}
+	// }
+
 	// server.logger.Printf("user %s deleting chat %s\n", currentUser.Username, stringChatId)
+}
+
+func (server *ChatServer) receiveChatSignal(websocketConnection *websocket.Conn, signalChannel <-chan ChatListSignal) {
+	for {
+		select {
+		case <-server.chatGlobalContext.Done():
+			return
+		case chatSignal := <-signalChannel:
+			websocketConnection.WriteJSON(chatSignal)
+		}
+	}
 }
 
 func (server *ChatServer) newWebsocketConnection(responseWriter http.ResponseWriter, request *http.Request) (*userInfo, *websocket.Conn) {
