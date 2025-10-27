@@ -201,7 +201,6 @@ func (server *ChatServer) handleCreateChat(currentUser *userInfo, chatName strin
 			OwnerName: currentUser.Username,
 		},
 	}
-	// server.logger.Printf("chat %s created by user %s(%d)\n", chatName, currentUser.Username, currentUser.UserId)
 
 }
 
@@ -233,15 +232,6 @@ func (server *ChatServer) handleDeleteChat(currentUser *userInfo, stringChatId s
 			ChatId: uint(chatId),
 		},
 	}
-
-	// for _, currentChat := range server.chatList {
-	// 	currentChat.ControlChannel <- chat.ControlMessage{
-	// 		Signal: chat.DeleteChat,
-	// 		ChatID: chatId,
-	// 	}
-	// }
-
-	// server.logger.Printf("user %s deleting chat %s\n", currentUser.Username, stringChatId)
 }
 
 func (server *ChatServer) receiveChatSignal(websocketConnection *websocket.Conn, signalChannel <-chan ChatListSignal) {
