@@ -16,8 +16,31 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [chats, setChats] = useState([]);         
   const [selectedChat, setSelectedChat] = useState(null);
+  const selectedChatRef = useRef(null);
   const messageInputRef = useRef(null);
   const chatRef = useScrollToBottom([messages]);
+  
+  const socketHandler = (msg) => {
+    if (msg.intent === 'chat_list') {
+      setChats(msg.chat_list);
+    } else if (msg.intent === 'send_message') {
+      // onMessageReceived(msg);
+      setMessages(prev => [...prev, msg]);
+    } else if (msg.intent === 'create_chat') {
+      // console.log('creating chat: ', msg)
+      setChats(prev => [...prev, msg.chat_info]);
+    }else if (msg.intent === 'delete_chat') {
+      setChats(prev => prev.filter(c => c.chat_id !== msg.chat_info.chat_id));
+      const currentChat = selectedChatRef.current
+      if (currentChat && currentChat.chat_id === msg.chat_info.chat_id) {
+        alert('Чат был удален')
+        setSelectedChat(null)
+        setPage(routes.chatList)
+      }
+      // onChatDeleted(msg.chat_info.chat_id)
+      // console.log('deleted chat: ', msg);
+    }
+  }
 
   const {
     sendMessage,
@@ -34,8 +57,21 @@ function App() {
       setCurrentUser(null);
       setPage(routes.login);
     },
+    // onChatDeleted: (deletedChatId) => {
+      
+    //   console.log('on deleted : select ', selectedChat, ' deleted ', deletedChatId)
+    //   if (selectedChat && selectedChat.chat_id === deletedChatId) {
+    //     setSelectedChat(null);
+    //     setPage(routes.chatList)
+    //   }
+    // },
+    onSocketHandler: socketHandler,
     routes
   });
+
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
 
   useEffect(() => {
     verifyAccessToken(setCurrentUser, setPage, routes);
@@ -110,6 +146,7 @@ function App() {
     localStorage.removeItem('username');
   };
 
+
   const chatAction = (name, action) => {
     const text = name.trim()
     if (action == 'create_chat'){
@@ -138,7 +175,7 @@ function App() {
   }
 
   if (page === routes.chatList) {
-
+    console.log('chatlist current chat : ', selectedChat)
     return (
       <ChatListPage
         chats={chats}
@@ -152,6 +189,7 @@ function App() {
 
 
   if (page === routes.chat) {
+    console.log('current chat : ', selectedChat)
     return (
       <ChatPage
         currentChat={selectedChat}
