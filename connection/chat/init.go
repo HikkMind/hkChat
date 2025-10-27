@@ -26,38 +26,22 @@ const (
 )
 
 type ControlMessage struct {
-	Signal   ChatSignal
-	UserID   int
-	Username string
-	// InputChannel  chan structs.Message
+	Signal        ChatSignal
+	UserID        int
+	Username      string
 	Message       string
 	OutputChannel chan structs.Message
 }
 
-// type ChatMessage struct {
-// 	UserId   uint      `json:"user_id"`
-// 	Username string    `json:"username"`
-// 	Message  string    `json:"message"`
-// 	Time     time.Time `json:"time"`
-// }
-
-// type UserChannels struct {
-// 	InputChannel  chan structs.Message
-// 	OutputChannel chan structs.Message
-// }
-
 type Chat struct {
-	// userList map[int]UserChannels
 	userChannelList map[int]chan structs.Message
 	messages        []structs.Message
 	messageChannel  chan tables.Message
-	// chatActionChannel chan ChatListSignal
 
 	userMutex    sync.RWMutex
 	messageMutex sync.RWMutex
 
 	chatId uint
-	// database *gorm.DB
 	logger *log.Logger
 
 	datagatePort   string
@@ -69,7 +53,6 @@ func newChat(chatId uint) *Chat {
 	var self Chat
 	self.userChannelList = make(map[int]chan structs.Message)
 	self.messageChannel = make(chan tables.Message)
-	// self.chatActionChannel = make(chan ChatListSignal)
 	self.messages = make([]structs.Message, 0)
 	self.chatId = chatId
 	self.logger = log.Default()

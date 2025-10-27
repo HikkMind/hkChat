@@ -124,8 +124,6 @@ func (server *ChatServer) loadChatList() {
 	server.logger.Print("loaded chats : ", len(allChats.ChatList))
 	server.logger.Print("chat list: ", allChats)
 
-	// server.chatList = make(map[uint]chan chat.ControlMessage)
-	// server.chatListName = make(map[uint]string)
 	server.chatList = make(map[uint]chatControlInfo)
 
 	for _, currentChat := range allChats.ChatList {
@@ -158,8 +156,6 @@ func (server *ChatServer) registerNewChat(chatID, ownerId uint, chatName, ownerN
 
 	chatChannel := make(chan chat.ControlMessage)
 
-	// server.chatList[chatID] = chatChannel
-	// server.chatListName[chatID] = chatName
 	server.chatList[chatID] = chatControlInfo{
 		ControlChannel: chatChannel,
 		ChatName:       chatName,

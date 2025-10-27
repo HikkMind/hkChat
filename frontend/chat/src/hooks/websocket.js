@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-export default function useWebSocket({ page, currentUser, selectedChat, onChatsReceived, onMessageReceived, onUnauthorized, routes }) {
+export default function useWebSocket({ page, currentUser, selectedChat, onChatsReceived, onMessageReceived, onUnauthorized, onChatDeleted, onSocketHandler, routes }) {
   const socketRef = useRef(null);
 
   function sendWhenOpen(socket, data) {
@@ -38,18 +38,20 @@ export default function useWebSocket({ page, currentUser, selectedChat, onChatsR
         
         const msg = JSON.parse(event.data);
 
-        if (msg.intent === 'chat_list') {
-          onChatsReceived(msg.chat_list);
-        } else if (msg.intent === 'send_message') {
-          onMessageReceived(msg);
-        } else if (msg.intent === 'create_chat') {
-          // console.log('creating chat: ', msg)
-          onChatsReceived(prev => [...prev, msg.chat_info]);
-        }else if (msg.intent === 'delete_chat') {
-          // console.log('deleting chat: ', msg);
-          onChatsReceived(prev => prev.filter(c => c.chat_id !== msg.chat_info.chat_id));
-          // console.log('deleted chat: ', msg);
-        }
+        onSocketHandler(msg)
+        // if (msg.intent === 'chat_list') {
+        //   onChatsReceived(msg.chat_list);
+        // } else if (msg.intent === 'send_message') {
+        //   onMessageReceived(msg);
+        // } else if (msg.intent === 'create_chat') {
+        //   // console.log('creating chat: ', msg)
+        //   onChatsReceived(prev => [...prev, msg.chat_info]);
+        // }else if (msg.intent === 'delete_chat') {
+        //   // console.log('deleting chat: ', msg);
+        //   onChatsReceived(prev => prev.filter(c => c.chat_id !== msg.chat_info.chat_id));
+        //   onChatDeleted(msg.chat_info.chat_id)
+        //   // console.log('deleted chat: ', msg);
+        // }
       };
 
       socket.onclose = (event) => {
