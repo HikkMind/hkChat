@@ -62,7 +62,7 @@ func (server *DatabaseServer) postgresInit() {
 		log.Fatal("migration failed:", err)
 	}
 	server.databaseConnection = db
-	server.logger.Print("connected to postgres")
+	server.logger.Print("connected to postgres")	
 }
 
 func (server *DatabaseServer) redisInit() {
