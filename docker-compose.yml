@@ -1,0 +1,150 @@
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/DockerfileNginx
+    container_name: nginx
+    ports:
+      - "${NGINX_HTTP_PORT}:80"
+      - "${NGINX_HTTPS_PORT}:443"
+    restart: always
+    depends_on:
+      auth:
+        condition: service_healthy
+      connection:
+        condition: service_started
+      datagate:
+        condition: service_healthy
+    networks:
+      - restnet
+  auth:
+    build:
+      context: .
+      dockerfile: auth/DockerfileAuth
+    container_name: auth
+    env_file:
+      - ./shared/env/auth
+      - ./shared/env/ports
+    depends_on:
+      datagate:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr", "localhost:${AUTH_GRPC_PORT}"]
+      interval: 3s
+      timeout: 1s
+      retries: 5
+    networks:
+      - datanet
+      - restnet
+  connection:
+    build:
+      context: .
+      dockerfile: connection/DockerfileConn
+    container_name: connection
+    env_file:
+      - ./shared/env/ports
+      - ./shared/env/rabbitmq
+    depends_on:
+      datagate:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+    networks:
+      - datanet
+      - restnet
+  client:
+    build:
+      context: ./frontend/chat
+      dockerfile: DockerfileFrontend
+    container_name: client
+    depends_on:
+      connection:
+        condition: service_started
+    networks:
+      - restnet
+  redis:
+    build:
+      context: ./redis
+      dockerfile: DockerfileRedis
+    container_name: redis
+    volumes:
+      - ${REDIS_LOCAL_DATA}:/data
+    networks:
+      - gatenet
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  postgres:
+    build:
+      context: ./postgres
+      dockerfile: DockerfilePostgres
+    restart: always
+    container_name: postgres
+    env_file:
+      - ./postgres/postgres.config
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ${POSTGRES_LOCAL_DATA}:/var/lib/postgresql/data
+    networks:
+      - gatenet
+  datagate:
+    build:
+      context: .
+      dockerfile: ./datagate/DockerfileDataGate
+    env_file:
+      - ./datagate/.dbenv
+      - ./shared/env/ports
+      - ./shared/env/rabbitmq
+    restart: always
+    container_name: datagate
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr", "localhost:6003"]
+      interval: 3s
+      timeout: 1s
+      retries: 5
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - gatenet
+      - restnet
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    restart: always
+    env_file:
+      - shared/env/rabbitmq
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    # ports:
+    #   - "5672:5672"
+    #   - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - datanet
+      - gatenet
+        
+networks:
+  datanet:
+    driver: bridge
+  restnet:
+    driver: bridge
+  gatenet:
+    driver: bridge
+  
+volumes:
+  rabbitmq_data:
