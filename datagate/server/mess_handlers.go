@@ -2,10 +2,13 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	chatstream "hkchat/proto/datastream/chat"
+	"hkchat/structs"
 	"hkchat/tables"
 	"time"
 
+	amqp "github.com/rabbitmq/amqp091-go"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -45,27 +48,6 @@ func (server *DatabaseServer) LoadChatHistory(ctx context.Context, request *chat
 	server.logger.Print("loaded chat \"", request.ChatId, "\"")
 
 	return chatHistory, result.Error
-}
-
-func (server *DatabaseServer) ProcessMessage(ctx context.Context, request *chatstream.MessageTable) (*chatstream.OperationStatus, error) {
-
-	server.logger.Print("processing new message: ", request, "...")
-
-	newMessage := tables.Message{
-		SenderID:       uint(request.SenderID),
-		SenderUsername: request.SenderUsername,
-		ChatID:         uint(request.ChatID),
-		Message:        request.Message,
-	}
-
-	result := server.databaseConnection.
-		Table("messages").
-		Create(&newMessage)
-
-	opStatus := &chatstream.OperationStatus{Status: result.Error == nil}
-	server.logger.Print("message chat ID: ", request.ChatID, " processed")
-
-	return opStatus, result.Error
 }
 
 func (server *DatabaseServer) LoadChatList(ctx context.Context, request *chatstream.ChatListRequest) (*chatstream.ChatListResponse, error) {
@@ -138,4 +120,39 @@ func (server *DatabaseServer) DeleteChat(ctx context.Context, request *chatstrea
 	return &chatstream.OperationStatus{
 		Status: result.Error == nil,
 	}, result.Error
+}
+
+func (server *DatabaseServer) processMessage(messageDelivery amqp.Delivery) {
+
+	var envelope structs.RabbitEnvelope
+	if err := json.Unmarshal(messageDelivery.Body, &envelope); err != nil {
+		server.logger.Printf("failed to unmarshal message: %v", err)
+		messageDelivery.Nack(false, false)
+		return
+	}
+	message := envelope.Message
+
+	server.logger.Print("processing new message: ", message, "...")
+
+	// 	newMessage := tables.Message{
+	// 		SenderID:       uint(request.SenderID),
+	// 		SenderUsername: request.SenderUsername,
+	// 		ChatID:         uint(request.ChatID),
+	// 		Message:        request.Message,
+	// 	}
+
+	result := server.databaseConnection.
+		Table("messages").
+		Create(&message)
+
+	if result.Error != nil {
+		server.logger.Print("failed save message to database")
+		messageDelivery.Nack(false, true)
+	}
+
+	messageDelivery.Ack(false)
+	// 	opStatus := &chatstream.OperationStatus{Status: result.Error == nil}
+	server.logger.Print("message chat ID: ", message.ChatID, " processed")
+
+	// return opStatus, result.Error
 }

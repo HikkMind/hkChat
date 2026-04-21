@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v3.21.12
-// source: datastream/chat/chatstream.proto
+// source: chatstream.proto
 
 package chatstream
 
@@ -20,7 +20,6 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	ChatService_LoadChatHistory_FullMethodName = "/chatstream.ChatService/LoadChatHistory"
-	ChatService_ProcessMessage_FullMethodName  = "/chatstream.ChatService/ProcessMessage"
 	ChatService_CreateNewChat_FullMethodName   = "/chatstream.ChatService/CreateNewChat"
 	ChatService_DeleteChat_FullMethodName      = "/chatstream.ChatService/DeleteChat"
 	ChatService_LoadChatList_FullMethodName    = "/chatstream.ChatService/LoadChatList"
@@ -31,7 +30,6 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChatServiceClient interface {
 	LoadChatHistory(ctx context.Context, in *ChatIdRequest, opts ...grpc.CallOption) (*ChatHistoryResponse, error)
-	ProcessMessage(ctx context.Context, in *MessageTable, opts ...grpc.CallOption) (*OperationStatus, error)
 	CreateNewChat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*CreateChatResponse, error)
 	DeleteChat(ctx context.Context, in *ChatIdRequest, opts ...grpc.CallOption) (*OperationStatus, error)
 	LoadChatList(ctx context.Context, in *ChatListRequest, opts ...grpc.CallOption) (*ChatListResponse, error)
@@ -49,16 +47,6 @@ func (c *chatServiceClient) LoadChatHistory(ctx context.Context, in *ChatIdReque
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ChatHistoryResponse)
 	err := c.cc.Invoke(ctx, ChatService_LoadChatHistory_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *chatServiceClient) ProcessMessage(ctx context.Context, in *MessageTable, opts ...grpc.CallOption) (*OperationStatus, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(OperationStatus)
-	err := c.cc.Invoke(ctx, ChatService_ProcessMessage_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +88,6 @@ func (c *chatServiceClient) LoadChatList(ctx context.Context, in *ChatListReques
 // for forward compatibility.
 type ChatServiceServer interface {
 	LoadChatHistory(context.Context, *ChatIdRequest) (*ChatHistoryResponse, error)
-	ProcessMessage(context.Context, *MessageTable) (*OperationStatus, error)
 	CreateNewChat(context.Context, *CreateChatRequest) (*CreateChatResponse, error)
 	DeleteChat(context.Context, *ChatIdRequest) (*OperationStatus, error)
 	LoadChatList(context.Context, *ChatListRequest) (*ChatListResponse, error)
@@ -116,9 +103,6 @@ type UnimplementedChatServiceServer struct{}
 
 func (UnimplementedChatServiceServer) LoadChatHistory(context.Context, *ChatIdRequest) (*ChatHistoryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LoadChatHistory not implemented")
-}
-func (UnimplementedChatServiceServer) ProcessMessage(context.Context, *MessageTable) (*OperationStatus, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ProcessMessage not implemented")
 }
 func (UnimplementedChatServiceServer) CreateNewChat(context.Context, *CreateChatRequest) (*CreateChatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateNewChat not implemented")
@@ -164,24 +148,6 @@ func _ChatService_LoadChatHistory_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ChatServiceServer).LoadChatHistory(ctx, req.(*ChatIdRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ChatService_ProcessMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MessageTable)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ChatServiceServer).ProcessMessage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ChatService_ProcessMessage_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServiceServer).ProcessMessage(ctx, req.(*MessageTable))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -252,10 +218,6 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ChatService_LoadChatHistory_Handler,
 		},
 		{
-			MethodName: "ProcessMessage",
-			Handler:    _ChatService_ProcessMessage_Handler,
-		},
-		{
 			MethodName: "CreateNewChat",
 			Handler:    _ChatService_CreateNewChat_Handler,
 		},
@@ -269,5 +231,5 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "datastream/chat/chatstream.proto",
+	Metadata: "chatstream.proto",
 }

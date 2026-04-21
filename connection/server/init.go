@@ -2,23 +2,28 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"connection-service/chat"
 
 	chatstream "hkchat/proto/datastream/chat"
+	"hkchat/structs"
+	"hkchat/tables"
 
 	tokenverify "github.com/hikkmind/hkchat/proto/tokenverify"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 type chatControlInfo struct {
-	ControlChannel chan chat.ControlMessage
+	ControlChannel chan structs.ControlMessage
 	ChatName       string
 	OwnerID        uint
 	OwnerName      string
@@ -51,6 +56,10 @@ type ChatServer struct {
 	messageDatabaseClient   chatstream.ChatServiceClient
 	chatGlobalContext       context.Context
 	chatGlobalContextCancel context.CancelFunc
+
+	rabbitConn     *amqp.Connection
+	rabbitChannel  *amqp.Channel
+	rabbitExchange string
 }
 
 type HandleConnectionMessage struct {
@@ -80,6 +89,7 @@ func (server *ChatServer) StartServer() {
 
 	server.grpcDatagateInit()
 	server.grpcAuthInit()
+	server.InitRabbitMQ()
 
 	server.loadChatList()
 	go server.startHandleChatSignal()
@@ -154,7 +164,7 @@ func (server *ChatServer) registerNewChat(chatID, ownerId uint, chatName, ownerN
 	server.chatListMutex.Lock()
 	defer server.chatListMutex.Unlock()
 
-	chatChannel := make(chan chat.ControlMessage)
+	chatChannel := make(chan structs.ControlMessage)
 
 	server.chatList[chatID] = chatControlInfo{
 		ControlChannel: chatChannel,
@@ -179,4 +189,81 @@ func (server *ChatServer) startHandleChatSignal() {
 			server.userChatSignalMutex.RUnlock()
 		}
 	}
+}
+
+func (server *ChatServer) InitRabbitMQ() {
+	rabbitURL := fmt.Sprintf("amqp://%s:%s@%s:%s/%s",
+		os.Getenv("RABBITMQ_USER"),
+		os.Getenv("RABBITMQ_PASSWORD"),
+		os.Getenv("RABBITMQ_HOST"),
+		os.Getenv("RABBITMQ_PORT"),
+		os.Getenv("RABBITMQ_VHOST"),
+	)
+	conn, err := amqp.Dial(rabbitURL)
+	if err != nil {
+		// return fmt.Errorf("failed to connect to RabbitMQ: %w", err)
+		server.logger.Fatal("failed init rabbitMQ : ", err)
+	}
+	server.rabbitConn = conn
+
+	ch, err := conn.Channel()
+	if err != nil {
+		// return err
+		server.logger.Fatal("failed get rabbitMQ channel : ", err)
+	}
+	server.rabbitChannel = ch
+
+	// Объявляем topic exchange (будет использоваться и бекендом, и датагейтом)
+	server.rabbitExchange = "chat.events"
+	err = ch.ExchangeDeclare(server.rabbitExchange, "topic", true, false, false, false, nil)
+	if err != nil {
+		// return fmt.Errorf("exchange declare failed: %w", err)
+		server.logger.Fatal("exchange declare failed: ", err)
+	}
+
+	// Настройка подтверждений publisher confirms
+	if err := ch.Confirm(false); err != nil {
+		// return fmt.Errorf("confirm mode failed: %w", err)
+		server.logger.Fatal("confirm mode failed: ", err)
+	}
+
+	log.Println("RabbitMQ initialized (publisher mode)")
+	// return nil
+}
+
+// publishEvent отправляет событие в RabbitMQ
+func (s *ChatServer) publishMessage(chatID uint, msg tables.Message) error {
+	s.logger.Print("start publishing message : ", msg)
+	envelope := structs.NewEnvelope(chatID, msg)
+	body, err := envelope.ToJSON()
+	if err != nil {
+		return err
+	}
+
+	// routing key: событие направляется в датагейт
+	routingKey := fmt.Sprintf("chat.%d.event", chatID)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = s.rabbitChannel.PublishWithContext(
+		ctx,
+		s.rabbitExchange,
+		routingKey,
+		false, // mandatory
+		false, // immediate
+		amqp.Publishing{
+			ContentType:  "application/json",
+			Body:         body,
+			DeliveryMode: amqp.Persistent,
+			MessageId:    envelope.EventID,
+			Timestamp:    envelope.CreatedAt,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("publish failed: %w", err)
+	}
+
+	log.Printf("Event published: chat=%d, type=%s, event_id=%s", chatID, "send message", envelope.EventID)
+	return nil
 }

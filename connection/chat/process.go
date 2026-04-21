@@ -3,11 +3,8 @@ package chat
 import (
 	"context"
 
-	chatstream "hkchat/proto/datastream/chat"
 	"hkchat/structs"
 	"hkchat/tables"
-
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (chat *Chat) handleInputMessages(chatContext context.Context) {
@@ -25,21 +22,21 @@ func (chat *Chat) handleInputMessages(chatContext context.Context) {
 
 func (chat *Chat) processNewMessage(message *tables.Message) {
 
-	cont, _ := context.WithCancel(context.Background())
-	_, err := chat.databaseClient.ProcessMessage(cont, &chatstream.MessageTable{
-		SenderID:       uint32(message.SenderID),
-		SenderUsername: message.SenderUsername,
-		ChatID:         uint32(message.ChatID),
-		Message:        message.Message,
-		Time:           timestamppb.New(message.CreatedAt),
-	})
+	// cont, _ := context.WithCancel(context.Background())
+	// _, err := chat.databaseClient.ProcessMessage(cont, &chatstream.MessageTable{
+	// 	SenderID:       uint32(message.SenderID),
+	// 	SenderUsername: message.SenderUsername,
+	// 	ChatID:         uint32(message.ChatID),
+	// 	Message:        message.Message,
+	// 	Time:           timestamppb.New(message.CreatedAt),
+	// })
 
-	if err != nil {
-		chat.logger.Print("message error chat ", chat.chatId, ": ",
-			message.SenderUsername, " ", message.Message, " err=", err)
-		return
-	}
-	chat.logger.Print("add new message to database")
+	// if err != nil {
+	// 	chat.logger.Print("message error chat ", chat.chatId, ": ",
+	// 		message.SenderUsername, " ", message.Message, " err=", err)
+	// 	return
+	// }
+	// chat.logger.Print("add new message to database")
 
 	userMessage := structs.Message{
 		Sender:  message.SenderUsername,

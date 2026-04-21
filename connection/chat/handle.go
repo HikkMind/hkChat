@@ -4,10 +4,11 @@ import (
 	"context"
 	"time"
 
+	"hkchat/structs"
 	"hkchat/tables"
 )
 
-func HandleChat(signalChannel <-chan ControlMessage, chatId uint) {
+func HandleChat(signalChannel <-chan structs.ControlMessage, chatId uint) {
 
 	currentChat := newChat(chatId)
 	if currentChat == nil {
@@ -25,7 +26,7 @@ func HandleChat(signalChannel <-chan ControlMessage, chatId uint) {
 		currentChat.logger.Print("new signal in chat : ", chatId, ": ", signal)
 
 		switch signal.Signal {
-		case Join:
+		case structs.Join:
 			currentChat.userMutex.Lock()
 			currentChat.userChannelList[signal.UserID] = signal.OutputChannel
 			currentChat.messageMutex.RLock()
@@ -35,12 +36,12 @@ func HandleChat(signalChannel <-chan ControlMessage, chatId uint) {
 			currentChat.messageMutex.RUnlock()
 			currentChat.userMutex.Unlock()
 			currentChat.logger.Print("user joined : ", signal.Username)
-		case Leave:
+		case structs.Leave:
 			currentChat.userMutex.Lock()
 			delete(currentChat.userChannelList, signal.UserID)
 			currentChat.userMutex.Unlock()
 			currentChat.logger.Print("user leaved : ", signal.Username)
-		case SendMessage:
+		case structs.SendMessage:
 			currentChat.logger.Print("start process message in channel")
 			currentChat.messageChannel <- tables.Message{
 				SenderID:       uint(signal.UserID),

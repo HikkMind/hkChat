@@ -15,24 +15,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type ChatSignal int
-
-const (
-	Join ChatSignal = iota
-	Leave
-	SendMessage
-	CreateChat
-	DeleteChat
-)
-
-type ControlMessage struct {
-	Signal        ChatSignal
-	UserID        int
-	Username      string
-	Message       string
-	OutputChannel chan structs.Message
-}
-
 type Chat struct {
 	userChannelList map[int]chan structs.Message
 	messages        []structs.Message

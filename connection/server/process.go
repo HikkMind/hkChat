@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"connection-service/chat"
 	chatstream "hkchat/proto/datastream/chat"
 	"hkchat/structs"
+	"hkchat/tables"
 
 	"github.com/gorilla/websocket"
 )
@@ -97,8 +97,8 @@ func (server *ChatServer) handleUserJoin(websocketConnection **websocket.Conn, c
 	currentChat, ok := server.chatList[chatId]
 	go server.handleConnectionMessageSending(chatContext, websocketConnection, outputChannel)
 	if ok {
-		currentChat.ControlChannel <- chat.ControlMessage{
-			Signal:        chat.Join,
+		currentChat.ControlChannel <- structs.ControlMessage{
+			Signal:        structs.Join,
 			UserID:        int(currentUser.UserId),
 			OutputChannel: outputChannel,
 		}
@@ -110,8 +110,8 @@ func (server *ChatServer) handleUserJoin(websocketConnection **websocket.Conn, c
 }
 
 func (server *ChatServer) handleUserLeave(chatContextCancel context.CancelFunc, chatId uint, userId int) {
-	server.chatList[chatId].ControlChannel <- chat.ControlMessage{
-		Signal: chat.Leave,
+	server.chatList[chatId].ControlChannel <- structs.ControlMessage{
+		Signal: structs.Leave,
 		UserID: userId,
 	}
 	if chatContextCancel != nil {
@@ -125,12 +125,18 @@ func (server *ChatServer) handleUserSendMessage(userMessage HandleConnectionMess
 	}
 	currentChat, ok := server.chatList[uint(userMessage.ChatId)]
 	if ok {
-		currentChat.ControlChannel <- chat.ControlMessage{
-			Signal:   chat.SendMessage,
+		currentChat.ControlChannel <- structs.ControlMessage{
+			Signal:   structs.SendMessage,
 			UserID:   int(currentUser.UserId),
 			Username: currentUser.Username,
 			Message:  userMessage.Text,
 		}
+		server.publishMessage(uint(userMessage.ChatId), tables.Message{
+			SenderID:       currentUser.UserId,
+			SenderUsername: currentUser.Username,
+			ChatID:         uint(userMessage.ChatId),
+			Message:        userMessage.Text,
+		})
 		return true
 	} else {
 		server.logger.Print("wrong join chat_id : ", userMessage.ChatId)
