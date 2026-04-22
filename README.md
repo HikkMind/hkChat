@@ -1,28 +1,35 @@
 # hkChat
 
-*hkChat* - это веб-приложение для обмена сообщениями в реальном времени. Пользователь может пройти регистрацию, выбрать интересующий чат и начать общаться с другими участниками системы.
+*hkChat* - is a real-time messaging web application. Users can register, select a chat room of interest, and start communicating with other participants.
 
+## Interface
 
-### Интерфейс
+The application is implemented as a single-page interface, ensuring fast response times without page reloads. After registration and login, users gain access to the chat list and can exchange messages with others without revealing their identity.
 
-Приложение реализовано в формате одностраничного интерфейса, что обеспечивает быстрый отклик без перезагрузки страницы. После регистрации и авторизации пользователь получает доступ к списку чатов и может вести переписку с другими людьми, при этом не раскрывая свою личность.
+## Technologies
 
-### Технологии
-#### _Frontend_
-Клиентская часть разработана как одностраничное приложение на React с использованием JavaScript. Поддерживается работа по протоколу HTTPS. Для повышения безопасности используются cookie.
+### _Frontend_
+The client side is built as a single-page application using React with JavaScript. It supports HTTPS and enhances security with cookies.
 - React, JavaScript, HTML
-#### _Backend_
-Включает в себя 3 микросервиса, отвечающие за аутентификацию, обработку подключения и проксирование запросов пользователя. Каждый запрос обрабатывается асинхронно, что позволяет достигать высокой эффективности.
-- Golang, Nginx, Websocket
-#### _Database_
-Постоянные данные пользователей (логины, пароли и т.п.) хранятся в PostgreSQL. Для временных данных, например токенов авторизации, используется Redis.
+
+### _Backend_
+The backend consists of three microservices responsible for authentication, connection handling, and request proxying. Each request is processed asynchronously, achieving high efficiency.
+- Golang, Nginx, WebSocket
+
+### _Database_
+Persistent user data (logins, passwords, etc.) is stored in PostgreSQL. Temporary data, such as authentication tokens, is stored in Redis.
 - PostgreSQL, Redis
 
+## Running the Application
 
-### Запуск приложения
-Приложение развертывается в контейнерах Docker с помощью `docker compose`. Предварительно перед запуском необходимо заполнить поля в файле `.example.dbenv ` и стереть из названия ".example". 
+The application is deployed in Docker containers using `docker compose`. Before running, you must fill in the required fields in the `datagate/.example.dbenv`, `postgres/postgres.config.example`, `redis/redis.config.example` files and remove ".example" from the file name.
 
-Приложение запускается командой в корне проекта:
+Start the application from the project root with:
+```bash
+make up
 ```
-docker compose up --build -d
+
+To shut down the application, run:
+```bash
+make down
 ```
