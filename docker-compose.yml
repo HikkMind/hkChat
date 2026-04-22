@@ -20,7 +20,7 @@ services:
   auth:
     build:
       context: .
-      dockerfile: auth/DockerfileAuth
+      dockerfile: auth/Dockerfile.auth
     container_name: auth
     env_file:
       - ./shared/env/auth
@@ -39,7 +39,7 @@ services:
   connection:
     build:
       context: .
-      dockerfile: connection/DockerfileConn
+      dockerfile: connection/Dockerfile.connection
     container_name: connection
     env_file:
       - ./shared/env/ports
@@ -96,7 +96,7 @@ services:
   datagate:
     build:
       context: .
-      dockerfile: ./datagate/DockerfileDataGate
+      dockerfile: ./datagate/Dockerfile.datagate
     env_file:
       - ./datagate/.dbenv
       - ./shared/env/ports

@@ -14,6 +14,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+type contextKey string
+
 type AuthServer struct {
 	// database           *gorm.DB
 
@@ -47,11 +49,11 @@ type userInfo struct {
 
 func (server *AuthServer) StartServer() {
 	server.serverVariablesInit()
-
+	const connectionKey contextKey = "connection"
 	serverAuth := &http.Server{
 		Addr: server.serverPort,
 		ConnContext: func(ctx context.Context, connection net.Conn) context.Context {
-			return context.WithValue(ctx, "connection", connection)
+			return context.WithValue(ctx, connectionKey, connection)
 		},
 	}
 

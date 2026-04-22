@@ -22,6 +22,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+type contextKey string
+
 type chatControlInfo struct {
 	ControlChannel chan structs.ControlMessage
 	ChatName       string
@@ -78,10 +80,11 @@ type userInfo struct {
 
 func (server *ChatServer) StartServer() {
 	server.serverVariablesInit()
+	const connectionKey contextKey = "connection"
 	serverHTTP := &http.Server{
 		Addr: server.serverPort,
 		ConnContext: func(ctx context.Context, connection net.Conn) context.Context {
-			return context.WithValue(ctx, "connection", connection)
+			return context.WithValue(ctx, connectionKey, connection)
 		},
 	}
 
