@@ -14,6 +14,7 @@ RUN curl -L https://github.com/grpc-ecosystem/grpc-health-probe/releases/downloa
 RUN chmod +x /bin/grpc_health_probe
 
 RUN go mod download
+RUN go mod tidy
 RUN go build -o datagate
 
 FROM alpine:3
